@@ -17,3 +17,15 @@ fastapi dev main.py
 
 ## Homework
 Write down 3 apps you use every day and guess 2 APIs each one calls. Post your answer in the YouTube comments!
+
+## Homework – example answer
+| App | APIs it might call |
+|-----|--------------------|
+| Swiggy / Zomato | Restaurant menu API, payment gateway API |
+| Google Pay / PhonePe (UPI) | Bank balance API, UPI transfer API |
+| Ola / Uber | Maps API, driver location API |
+
+## Interview questions
+1. **What is an API?** A contract that lets one program request data or actions from another in a fixed format, without knowing its internals.
+2. **What is FastAPI built on?** Starlette (web layer) and Pydantic (data validation); it runs on an ASGI server like Uvicorn.
+3. **WSGI vs ASGI?** WSGI handles one request per worker at a time (synchronous). ASGI is asynchronous, so one worker can serve many requests while others wait on I/O.

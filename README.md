@@ -2,13 +2,16 @@
 
 Free FastAPI course by **Prof. Nilesh Borate** on the YouTube channel **[Nilesh Technology](https://www.youtube.com/@nileshtechnology)**.
 
-Each folder contains the code for one video. Open the folder for the video you are watching.
+▶️ **Playlist:** https://www.youtube.com/playlist?list=PLBjgbZvHwQmg
+
+Each folder contains the code, homework answer and interview questions for one video. Open the folder for the video you are watching.
 
 | # | Video | Folder |
 |---|-------|--------|
 | 0 | Course Introduction | – |
 | 1 | What is FastAPI and Why Learn It? | [01-what-is-fastapi](01-what-is-fastapi) |
 | 2 | How the Web Works: HTTP in Depth | [02-http-in-depth](02-http-in-depth) |
+| 3 | REST API Fundamentals | [03-rest-api-fundamentals](03-rest-api-fundamentals) |
 
 ## Requirements
 - Python 3.10 or newer

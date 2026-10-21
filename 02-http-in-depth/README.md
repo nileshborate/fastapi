@@ -46,3 +46,15 @@ python http_inspect.py https://jsonplaceholder.typicode.com/users/1
 
 ## Homework
 Run `curl -v` on any public API. Note the method, 3 request headers, the status code and the response Content-Type. Share it in the YouTube comments!
+
+## Homework answer
+For `curl -v https://jsonplaceholder.typicode.com/posts/1`:
+- **Method:** `GET`
+- **Request headers:** `Host`, `User-Agent`, `Accept`
+- **Status code:** `200 OK`
+- **Response Content-Type:** `application/json; charset=utf-8`
+
+## Interview questions
+1. **What happens when you type a URL and press Enter?** DNS turns the name into an IP, a TCP connection opens (plus a TLS handshake for HTTPS), the browser sends an HTTP request, and the server returns an HTTP response.
+2. **What does "HTTP is stateless" mean?** The server doesn't remember previous requests; each request must carry everything needed, e.g. a token or cookie.
+3. **4xx vs 5xx?** 4xx = the client made a mistake (bad URL, bad data). 5xx = the server failed (a bug or outage).
