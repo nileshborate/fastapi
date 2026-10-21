@@ -43,3 +43,26 @@ fastapi dev main.py          # then open the URLs below
 
 ## Homework
 Open `homework.py`, add the correct type hints, and run `mypy --strict homework.py` until it says **Success**. Answer at the start of Video 5.
+
+## Homework answer
+```python
+from typing import Any
+
+
+def full_name(first: str, last: str, middle: str | None = None) -> str:
+    if middle:
+        return f"{first} {middle} {last}"
+    return f"{first} {last}"
+
+
+def average(marks: list[float]) -> float:
+    return sum(marks) / len(marks)
+
+
+def find_course(courses: list[dict[str, Any]], course_id: int) -> dict[str, Any] | None:
+    for course in courses:
+        if course["id"] == course_id:
+            return course
+    return None
+```
+`mypy --strict homework.py` → **Success: no issues found**
