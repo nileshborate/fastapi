@@ -12,6 +12,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 1 | What is FastAPI and Why Learn It? | [01-what-is-fastapi](01-what-is-fastapi) |
 | 2 | How the Web Works: HTTP in Depth | [02-http-in-depth](02-http-in-depth) |
 | 3 | REST API Fundamentals | [03-rest-api-fundamentals](03-rest-api-fundamentals) |
+| 4 | Python Type Hints for FastAPI | [04-python-type-hints](04-python-type-hints) |
 
 ## Requirements
 - Python 3.10 or newer

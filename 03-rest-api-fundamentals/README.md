@@ -54,3 +54,19 @@ Or with Python (no install): `python rest_methods.py`
 
 ## Homework
 Design a REST API for a **library** with books, members and loans – at least 8 endpoints with method, URL and success status code. Post it in the YouTube comments. The answer comes at the start of Video 4.
+
+## Homework answer – Library API
+| Method | Endpoint | Purpose | Success |
+|--------|----------|---------|---------|
+| GET | `/books` | List books | 200 |
+| GET | `/books/{id}` | Get one book | 200 |
+| POST | `/books` | Add a book | 201 |
+| PATCH | `/books/{id}` | Update a book | 200 |
+| DELETE | `/books/{id}` | Remove a book | 204 |
+| POST | `/members` | Register a member | 201 |
+| GET | `/members/{id}` | Get one member | 200 |
+| POST | `/loans` | Borrow a book (`book_id`, `member_id`) | 201 |
+| PATCH | `/loans/{id}` | Return a book (set `returned_at`) | 200 |
+| GET | `/members/{id}/loans` | A member's borrowed books | 200 |
+
+No verbs in URLs, plural nouns, and "borrow" becomes the **loans** resource.
