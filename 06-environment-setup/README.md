@@ -71,3 +71,25 @@ fastapi dev main.py        # open http://127.0.0.1:8000 and /docs
 2. Run `python check_setup.py` until every line says **[OK]**.
 3. Add a `.gitignore`, make your first commit, and push it to a new repo on your GitHub.
 Answer (all commands) at the start of Video 7.
+
+## Homework answer (shown at the start of Video 7)
+```bash
+mkdir course-hub
+cd course-hub
+python -m venv .venv
+.venv\Scripts\activate            # Windows
+# source .venv/bin/activate       # Mac / Linux
+pip install "fastapi[standard]"
+pip freeze > requirements.txt
+python check_setup.py             # repeat until every line says [OK]
+
+# copy .gitignore from this folder, then:
+git init
+git add .
+git commit -m "Initial setup: FastAPI environment"
+
+# create an empty repo on github.com (New repository), then:
+git branch -M main
+git remote add origin https://github.com/<your-username>/course-hub.git
+git push -u origin main
+```

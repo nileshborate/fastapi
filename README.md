@@ -15,6 +15,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 4 | Python Type Hints for FastAPI | [04-python-type-hints](04-python-type-hints) |
 | 5 | Async/Await and the Event Loop | [05-async-await](05-async-await) |
 | 6 | Environment Setup Like a Pro | [06-environment-setup](06-environment-setup) |
+| 7 | Your First FastAPI App | [07-first-fastapi-app](07-first-fastapi-app) |
 
 ## Requirements
 - Python 3.10 or newer
