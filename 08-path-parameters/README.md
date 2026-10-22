@@ -47,3 +47,20 @@ pytest -v
 2. Add `GET /levels/{level}/count` using the `Level` enum → returns `{"level": "...", "count": N}`.
 3. Make `course_id` accept only values from 1 to 1000 using `Path()`.
 Answer at the start of Video 9.
+
+## Homework answer (shown at the start of Video 9)
+```python
+@app.get("/courses/{course_id}/title")
+def course_title(course_id: Annotated[int, Path(ge=1, le=1000)]) -> dict[str, str | int]:
+    for course in COURSES:
+        if course["id"] == course_id:
+            return {"title": course["title"]}
+    raise HTTPException(status_code=404, detail="Course not found")
+
+
+@app.get("/levels/{level}/count")
+def level_count(level: Level) -> dict[str, str | int]:
+    count = len([course for course in COURSES if course["level"] == level.value])
+    return {"level": level.value, "count": count}
+```
+Full file: [`../09-query-parameters/homework_video8.py`](../09-query-parameters/homework_video8.py)
