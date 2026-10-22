@@ -45,3 +45,25 @@ Expected:
 
 ## Homework
 Open `homework.py` (takes ~3s). Convert it to async with `asyncio.gather` so it finishes in ~1s. Answer at the start of Video 6.
+
+## Homework answer
+```python
+import asyncio
+import time
+
+
+async def get_result(student: str) -> str:
+    await asyncio.sleep(1)
+    return f"{student}: PASS"
+
+
+async def main() -> None:
+    start = time.perf_counter()
+    results = await asyncio.gather(*(get_result(s) for s in ["Asha", "Ravi", "Meera"]))
+    for r in results:
+        print(r)
+    print(f"Done in {time.perf_counter() - start:.1f}s")    # ~1.0s
+
+
+asyncio.run(main())
+```

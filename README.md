@@ -14,6 +14,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 3 | REST API Fundamentals | [03-rest-api-fundamentals](03-rest-api-fundamentals) |
 | 4 | Python Type Hints for FastAPI | [04-python-type-hints](04-python-type-hints) |
 | 5 | Async/Await and the Event Loop | [05-async-await](05-async-await) |
+| 6 | Environment Setup Like a Pro | [06-environment-setup](06-environment-setup) |
 
 ## Requirements
 - Python 3.10 or newer
