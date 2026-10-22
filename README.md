@@ -16,6 +16,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 5 | Async/Await and the Event Loop | [05-async-await](05-async-await) |
 | 6 | Environment Setup Like a Pro | [06-environment-setup](06-environment-setup) |
 | 7 | Your First FastAPI App | [07-first-fastapi-app](07-first-fastapi-app) |
+| 8 | Path Parameters | [08-path-parameters](08-path-parameters) |
 
 ## Requirements
 - Python 3.10 or newer

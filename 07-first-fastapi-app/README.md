@@ -48,3 +48,16 @@ Add two endpoints to `main.py`:
 1. `GET /contact` → returns your email and website.
 2. `GET /stats` (as `async def`) → returns `{"total_courses": 3}`, calculated with `len(COURSES)`.
 Test both in `/docs`. Answer at the start of Video 8.
+
+## Homework answer (shown at the start of Video 8)
+```python
+@app.get("/contact")
+def contact() -> dict[str, str]:
+    return {"email": "nileshhanumantborate@gmail.com", "website": "https://www.nileshtechnology.in"}
+
+
+@app.get("/stats")
+async def stats() -> dict[str, int]:
+    return {"total_courses": len(COURSES)}
+```
+Full file: [`../08-path-parameters/homework_video7.py`](../08-path-parameters/homework_video7.py)
