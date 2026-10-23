@@ -58,3 +58,30 @@ curl -X POST "http://127.0.0.1:8000/courses/1/reviews?notify=true" \
 2. Add `POST /students` (201) that stores students in a `STUDENTS` list with an auto id.
 3. Add `PUT /students/{student_id}` with 404 when not found.
 Answer at the start of Video 11.
+
+## Homework answer (shown at the start of Video 11)
+```python
+class StudentCreate(BaseModel):
+    name: str
+    email: str
+    age: int | None = None
+    courses: list[int] = []      # Pydantic copies this default, so it's safe
+
+
+@app.post("/students", status_code=201)
+def create_student(student: StudentCreate) -> dict[str, Any]:
+    new_student = {"id": next_id(), **student.model_dump()}
+    STUDENTS.append(new_student)
+    return new_student
+
+
+@app.put("/students/{student_id}")
+def replace_student(student_id: Annotated[int, Path(gt=0)], student: StudentCreate) -> dict[str, Any]:
+    for index, existing in enumerate(STUDENTS):
+        if existing["id"] == student_id:
+            updated = {"id": student_id, **student.model_dump()}
+            STUDENTS[index] = updated
+            return updated
+    raise HTTPException(status_code=404, detail="Student not found")
+```
+Full file: [`../11-pydantic-field/homework_video10.py`](../11-pydantic-field/homework_video10.py)
