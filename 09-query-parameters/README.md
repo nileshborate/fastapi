@@ -51,3 +51,30 @@ pytest -v
 2. Add `sort_by` with an Enum of `title` or `price` to `/courses`.
 3. Make `/search` also accept `level` as an optional filter.
 Answer at the start of Video 10.
+
+## Homework answer (shown at the start of Video 10)
+```python
+class SortBy(Enum):
+    title = "title"
+    price = "price"
+
+
+@app.get("/courses")
+def list_courses(
+    ...,
+    max_price: int | None = None,      # 1
+    sort_by: SortBy | None = None,     # 2
+) -> list[dict[str, Any]]:
+    ...
+    if max_price is not None:
+        result = [course for course in result if course["price"] <= max_price]
+    if sort_by is not None:
+        result = sorted(result, key=lambda course: course[sort_by.value])
+    return result[skip : skip + limit]
+
+
+@app.get("/search")
+def search_courses(q: ..., level: Level | None = None) -> list[dict[str, Any]]:   # 3
+    ...
+```
+Full file: [`../10-request-body/homework_video9.py`](../10-request-body/homework_video9.py)

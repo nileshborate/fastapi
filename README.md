@@ -18,6 +18,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 7 | Your First FastAPI App | [07-first-fastapi-app](07-first-fastapi-app) |
 | 8 | Path Parameters | [08-path-parameters](08-path-parameters) |
 | 9 | Query Parameters | [09-query-parameters](09-query-parameters) |
+| 10 | Request Body with Pydantic | [10-request-body](10-request-body) |
 
 ## Requirements
 - Python 3.10 or newer
