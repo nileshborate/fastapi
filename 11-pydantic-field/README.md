@@ -50,3 +50,13 @@ Make a `CourseCreate` model with `Field()`:
 3. `level`: only `beginner`, `intermediate` or `advanced` – use a `pattern`.
 4. `tags`: a list of strings, default empty (`default_factory`), max 5 tags.
 Answer at the start of Video 12.
+
+## Homework answer (shown at the start of Video 12)
+```python
+class CourseCreate(BaseModel):
+    title: str = Field(min_length=3, max_length=100, examples=["FastAPI Basics"])
+    price: int = Field(default=0, ge=0, le=50000, description="Price in rupees")
+    level: str = Field(default="beginner", pattern=r"^(beginner|intermediate|advanced)$")
+    tags: list[str] = Field(default_factory=list, max_length=5)
+```
+Full file: [`../12-pydantic-validators/homework_video11.py`](../12-pydantic-validators/homework_video11.py)

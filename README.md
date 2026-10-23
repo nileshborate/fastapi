@@ -20,6 +20,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 9 | Query Parameters | [09-query-parameters](09-query-parameters) |
 | 10 | Request Body with Pydantic | [10-request-body](10-request-body) |
 | 11 | Pydantic Field(): Rules, Email, Defaults and Examples | [11-pydantic-field](11-pydantic-field) |
+| 12 | Pydantic Part 2: Validators, Nested Models and model_config | [12-pydantic-validators](12-pydantic-validators) |
 
 ## Requirements
 - Python 3.10 or newer
