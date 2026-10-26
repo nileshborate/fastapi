@@ -64,3 +64,34 @@ Create an `OrderCreate` model:
 3. A `model_validator`: if `coupon` is `"FREE100"`, the order can have only 1 item.
 4. `model_config` with `extra="forbid"`.
 Answer at the start of Video 13.
+
+## Homework answer (shown at the start of Video 13)
+```python
+class OrderItem(BaseModel):
+    course_id: int = Field(gt=0)
+    quantity: int = Field(default=1, ge=1, le=10)
+
+
+class OrderCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[OrderItem] = Field(min_length=1)
+    coupon: str | None = None
+
+    @field_validator("coupon")
+    @classmethod
+    def clean_coupon(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip().upper()
+        if not value.isalnum():
+            raise ValueError("coupon may contain only letters and digits")
+        return value
+
+    @model_validator(mode="after")
+    def free_coupon_one_item(self) -> Self:
+        if self.coupon == "FREE100" and len(self.items) > 1:
+            raise ValueError("coupon FREE100 allows only 1 item")
+        return self
+```
+Full file: [`../13-response-models/homework_video12.py`](../13-response-models/homework_video12.py)
