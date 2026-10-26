@@ -50,3 +50,6 @@ pytest -v                  # 8 passed
 4. Bonus: add a `request_id` (e.g. `uuid4()`) to the 500 response and to the log line.
 
 Answer at the start of Video 15.
+
+## Homework answer
+The answer is in [`../15-headers-cookies-forms-files/homework_video14.py`](../15-headers-cookies-forms-files/homework_video14.py): a `ShopError` base class with `ProductNotFoundError` (404) and `OutOfStockError` (409), one `@app.exception_handler(ShopError)`, `POST /products/{product_id}/buy`, and the bonus: a `request_id` (`uuid4().hex`) in the safe 500 response and in the log line.

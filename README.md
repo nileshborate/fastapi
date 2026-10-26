@@ -23,6 +23,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 12 | Pydantic Part 2: Validators, Nested Models and model_config | [12-pydantic-validators](12-pydantic-validators) |
 | 13 | Response Models and Status Codes | [13-response-models](13-response-models) |
 | 14 | Error Handling the Right Way | [14-error-handling](14-error-handling) |
+| 15 | Headers, Cookies, Forms and File Uploads | [15-headers-cookies-forms-files](15-headers-cookies-forms-files) |
 
 ## Requirements
 - Python 3.10 or newer

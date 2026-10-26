@@ -30,12 +30,14 @@ class CourseHubError(Exception):
 
 class CourseFullError(CourseHubError):
     def __init__(self, course_id: int) -> None:
-        super().__init__("COURSE_FULL", f"Course {course_id} has no free seats", status.HTTP_409_CONFLICT)
+        message = f"Course {course_id} has no free seats"
+        super().__init__("COURSE_FULL", message, status.HTTP_409_CONFLICT)
 
 
 class AlreadyEnrolledError(CourseHubError):
     def __init__(self, student: str) -> None:
-        super().__init__("ALREADY_ENROLLED", f"{student} is already enrolled", status.HTTP_409_CONFLICT)
+        message = f"{student} is already enrolled"
+        super().__init__("ALREADY_ENROLLED", message, status.HTTP_409_CONFLICT)
 
 
 # ---------------------------------------------------------------- 2. exception handlers
@@ -46,25 +48,34 @@ def error_body(code: str, message: str, **extra: Any) -> dict[str, Any]:
 
 @app.exception_handler(CourseHubError)
 async def coursehub_error_handler(request: Request, exc: CourseHubError) -> JSONResponse:
-    return JSONResponse(status_code=exc.status_code, content=error_body(exc.code, exc.message, path=request.url.path))
+    body = error_body(exc.code, exc.message, path=request.url.path)
+    return JSONResponse(status_code=exc.status_code, content=body)
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-    details = [{"field": ".".join(str(part) for part in err["loc"][1:]), "message": err["msg"]} for err in exc.errors()]
-    return JSONResponse(status_code=422, content=error_body("VALIDATION_ERROR", "Invalid request", details=details))
+    details = [
+        {"field": ".".join(str(part) for part in err["loc"][1:]), "message": err["msg"]}
+        for err in exc.errors()
+    ]
+    body = error_body("VALIDATION_ERROR", "Invalid request", details=details)
+    return JSONResponse(status_code=422, content=body)
 
 
 @app.exception_handler(StarletteHTTPException)
 async def http_error_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
-    detail = exc.detail if isinstance(exc.detail, dict) else {"code": f"HTTP_{exc.status_code}", "message": str(exc.detail)}
+    if isinstance(exc.detail, dict):
+        detail = exc.detail
+    else:
+        detail = {"code": f"HTTP_{exc.status_code}", "message": str(exc.detail)}
     return JSONResponse(status_code=exc.status_code, content={"error": detail}, headers=exc.headers)
 
 
 @app.exception_handler(Exception)
 async def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.exception("Unexpected error on %s", request.url.path)   # full details go to the LOG only
-    return JSONResponse(status_code=500, content=error_body("INTERNAL_ERROR", "Something went wrong. Please try again."))
+    logger.exception("Unexpected error on %s", request.url.path)  # full details -> LOG only
+    body = error_body("INTERNAL_ERROR", "Something went wrong. Please try again.")
+    return JSONResponse(status_code=500, content=body)
 
 
 # ---------------------------------------------------------------- 3. endpoints
@@ -88,7 +99,11 @@ def delete_course(course_id: Annotated[int, Path(gt=0)]) -> None:
     # detail can be a dict with your own fields
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail={"code": "NOT_ALLOWED", "message": "Only admins can delete courses", "required_role": "admin"},
+        detail={
+            "code": "NOT_ALLOWED",
+            "message": "Only admins can delete courses",
+            "required_role": "admin",
+        },
     )
 
 
@@ -102,7 +117,8 @@ def enroll(course_id: Annotated[int, Path(gt=0)], enrollment: Enrollment) -> dic
     if len(course["students"]) >= course["seats"]:
         raise CourseFullError(course_id)
     course["students"].append(enrollment.student)
-    return {"course_id": course_id, "student": enrollment.student, "seats_left": course["seats"] - len(course["students"])}
+    seats_left = course["seats"] - len(course["students"])
+    return {"course_id": course_id, "student": enrollment.student, "seats_left": seats_left}
 
 
 @app.get("/crash")
