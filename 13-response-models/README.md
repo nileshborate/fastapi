@@ -44,3 +44,6 @@ pytest -v
 3. `DELETE /courses/{course_id}` → 204, or 404 if not found.
 4. Add `responses={404: {"description": "Course not found"}}` to the delete route.
 Answer at the start of Video 14.
+
+## Homework answer
+The answer is in [`../14-error-handling/homework_video13.py`](../14-error-handling/homework_video13.py): `CourseIn` → `CourseOut` (with a `CourseInDB(CourseOut)` that stores `internal_notes`), `POST /courses` with `response_model=CourseOut` and 201, `GET /courses` with `list[CourseOut]`, and `DELETE /courses/{course_id}` with 204 / 404 and `responses={404: {"description": "Course not found"}}`.
