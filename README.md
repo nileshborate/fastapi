@@ -24,6 +24,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 13 | Response Models and Status Codes | [13-response-models](13-response-models) |
 | 14 | Error Handling the Right Way | [14-error-handling](14-error-handling) |
 | 15 | Headers, Cookies, Forms and File Uploads | [15-headers-cookies-forms-files](15-headers-cookies-forms-files) |
+| 16 | APIRouter and Project Structure | [16-apirouter-project-structure](16-apirouter-project-structure) |
 
 ## Requirements
 - Python 3.10 or newer

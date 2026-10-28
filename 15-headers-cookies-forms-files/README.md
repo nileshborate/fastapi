@@ -49,3 +49,6 @@ Set things on the response with a `Response` parameter:
 3. `POST /courses/{course_id}/resources`: requires an `X-API-Key` header, a `title` form field, and a **PDF** file (`application/pdf`) up to **5 MB** → 201, 401, 413 or 415.
 
 Answer at the start of Video 16.
+
+## Homework answer
+The answer is in [`../16-apirouter-project-structure/homework_video15.py`](../16-apirouter-project-structure/homework_video15.py): `GET /courses/{course_id}` sets an httponly `last_viewed` cookie for one day, `GET /recent` reads it with `Annotated[int | None, Cookie()] = None`, and `POST /courses/{course_id}/resources` checks the `X-API-Key` header (401), a `title` form field, the PDF type (415) and the 5 MB size (413) before saving with a `uuid4` name.
