@@ -1,0 +1,4 @@
+# secrets stay on your computer
+.env
+__pycache__/
+.venv/

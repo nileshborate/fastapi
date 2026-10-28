@@ -27,6 +27,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 16 | APIRouter and Project Structure | [16-apirouter-project-structure](16-apirouter-project-structure) |
 | 17 | Dependency Injection Basics | [17-dependency-injection](17-dependency-injection) |
 | 18 | Advanced Dependencies | [18-advanced-dependencies](18-advanced-dependencies) |
+| 19 | Settings and Environment Variables | [19-settings-env](19-settings-env) |
 
 ## Requirements
 - Python 3.10 or newer

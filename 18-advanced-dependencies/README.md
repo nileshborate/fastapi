@@ -46,3 +46,6 @@ App-wide: `FastAPI(dependencies=[...])` runs a dependency for **every** endpoint
 4. One test for each.
 
 Answer at the start of Video 19.
+
+## Homework answer
+The answer is inside the next project, [`../19-settings-env`](../19-settings-env): the `CourseFilter` class dependency (`min_price`, `max_price`) used by `GET /courses`, `allow_teachers = RoleChecker(["admin", "teacher"])` as a router-level dependency on `/teachers`, and the `request_timer` yield dependency added app-wide with `FastAPI(dependencies=[Depends(request_timer)])` – with a test for each.
