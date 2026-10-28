@@ -63,3 +63,6 @@ Add a **teachers** module, following the same structure:
 4. Include it in `main.py`, and add `tests/test_teachers.py` with 2 tests.
 
 Answer at the start of Video 17.
+
+## Homework answer
+The answer is inside the next project, [`../17-dependency-injection`](../17-dependency-injection): `app/schemas/teacher.py`, `app/services/teacher_service.py`, `app/routers/teachers.py` (prefix `/teachers`, tag `Teachers`), `app.include_router(teachers.router)` in `main.py`, and `tests/test_teachers.py` with 2 tests.
