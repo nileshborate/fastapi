@@ -59,3 +59,6 @@ app.dependency_overrides.clear()                          # undo it
 4. Write a test that overrides `require_admin`.
 
 Answer at the start of Video 18.
+
+## Homework answer
+The answer is inside the next project, [`../18-advanced-dependencies`](../18-advanced-dependencies): `get_student_or_404` + `StudentDep` (used in `GET /students/{student_id}`), `require_admin` returning 403 on `DELETE /courses/{course_id}` (in Video 18 it reads the role through the `get_role` sub-dependency), `Pagination` on `GET /teachers`, and `test_override_require_admin` in `tests/test_courses.py`.

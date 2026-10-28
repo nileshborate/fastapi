@@ -26,6 +26,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 15 | Headers, Cookies, Forms and File Uploads | [15-headers-cookies-forms-files](15-headers-cookies-forms-files) |
 | 16 | APIRouter and Project Structure | [16-apirouter-project-structure](16-apirouter-project-structure) |
 | 17 | Dependency Injection Basics | [17-dependency-injection](17-dependency-injection) |
+| 18 | Advanced Dependencies | [18-advanced-dependencies](18-advanced-dependencies) |
 
 ## Requirements
 - Python 3.10 or newer
