@@ -53,3 +53,6 @@ def get_settings() -> Settings:  # read once, reuse
 4. Tests for 2 and 3.
 
 Answer at the start of Video 20.
+
+## Homework answer
+The answer is inside the next project, [`../20-middleware-cors`](../20-middleware-cors): `database_url` and `max_upload_mb` (`Field(default=5, ge=1, le=50)`) in `Settings` and `.env.example`, `GET /admin/config` (never returns the API key), and a `model_validator` that rejects `debug=True` when `environment="prod"` – with tests in `tests/test_settings.py`.
