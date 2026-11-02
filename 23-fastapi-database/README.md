@@ -70,3 +70,27 @@ Nothing else changes – the health endpoint now says `"database": "postgresql"`
 4. Tests for each.
 
 Answer at the start of Video 24.
+
+## Homework answer
+The full code is in [24-crud-part1](../24-crud-part1) (`app/models/student.py`, `app/services/student_service.py`, `app/routers/admin.py`, `tests/test_crud.py`).
+```python
+# 1. students in the database - the same pattern as courses
+class Student(Base):
+    __tablename__ = "students"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50))
+    email: Mapped[str] = mapped_column(String(100), unique=True)
+
+# 2. GET /admin/db
+@router.get("/db")
+def database_info() -> dict[str, str | list[str]]:
+    return {"database": engine.dialect.name, "tables": sorted(inspect(engine).get_table_names())}
+
+# 3. a duplicate title -> 409 (first version, in the router)
+try:
+    course = course_service.create_course(db, data)
+except IntegrityError:
+    db.rollback()
+    raise HTTPException(status_code=409, detail="Course title already exists")
+```
+Video 24 moves the 409 into the service with a domain error (`AlreadyExistsError`) and an exception handler – so the service never needs to know about HTTP.

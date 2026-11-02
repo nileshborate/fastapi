@@ -32,6 +32,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 21 | Background Tasks and Lifespan Events | [21-background-tasks-lifespan](21-background-tasks-lifespan) |
 | 22 | Databases and ORMs Explained | [22-databases-orms](22-databases-orms) |
 | 23 | Connecting FastAPI to a Database | [23-fastapi-database](23-fastapi-database) |
+| 24 | CRUD with the Database, Part 1 | [24-crud-part1](24-crud-part1) |
 
 ## Requirements
 - Python 3.10 or newer
