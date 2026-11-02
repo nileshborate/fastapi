@@ -58,3 +58,29 @@ CORS is enforced by the **browser**, not the server: the server still runs the r
 4. Tests for each.
 
 Answer at the start of Video 21.
+
+## Homework answer
+The full code is in [21-background-tasks-lifespan](../21-background-tasks-lifespan) (`app/middleware.py`, `app/main.py`, `tests/test_middleware.py`).
+```python
+async def security_headers(request: Request, call_next: CallNext) -> Response:
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+async def limit_upload_size(request: Request, call_next: CallNext) -> Response:
+    max_mb = get_settings().max_upload_mb
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > max_mb * 1024 * 1024:
+        return JSONResponse(status_code=413, content={"detail": f"Request too large. Max {max_mb} MB"})
+    return await call_next(request)          # only called when the size is OK
+
+# main.py
+app.middleware("http")(limit_upload_size)     # innermost: its 413 still gets the security headers
+app.middleware("http")(security_headers)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)   # outermost
+```
+- `allowed_hosts: list[str] = ["localhost", "127.0.0.1"]` in settings. The TestClient calls itself `testserver`, so `conftest.py` sets `ALLOWED_HOSTS=["testserver"]`.
+- An unknown `Host` header gets **400 Invalid host header**.
