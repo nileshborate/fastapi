@@ -1,0 +1,5 @@
+[
+  {"title": "FastAPI Basics", "price": 299},
+  {"title": "Pydantic Models", "price": 199},
+  {"title": "Async Python", "price": 249}
+]

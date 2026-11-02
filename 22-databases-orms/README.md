@@ -74,3 +74,32 @@ conn.execute("SELECT ... WHERE name = ?", (name,))     # a parameter is always j
 4. Tests for each.
 
 Answer at the start of Video 23.
+
+## Homework answer
+The full code is in [23-fastapi-database/db_basics](../23-fastapi-database/db_basics) and `tests/test_db_basics.py`.
+```sql
+CREATE TABLE IF NOT EXISTS teachers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS courses (
+    ...,
+    teacher_id INTEGER REFERENCES teachers(id)       -- one teacher, many courses
+);
+SELECT courses.title FROM courses
+JOIN teachers ON teachers.id = courses.teacher_id
+WHERE teachers.name = ?;
+DELETE FROM courses WHERE id = ?;
+```
+```python
+class Student(Base):
+    __tablename__ = "students"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50))
+    email: Mapped[str] = mapped_column(String(100), unique=True)
+
+def find_student_by_email(session: Session, email: str) -> Student | None:
+    return session.scalars(select(Student).where(Student.email == email)).first()
+
+session.delete(course)      # DELETE with the ORM
+session.commit()
+```
+- `teachers` is created before `courses`, because `courses` points to it.
+- `.first()` returns `None` when nothing matches (`.one()` would raise an error).
