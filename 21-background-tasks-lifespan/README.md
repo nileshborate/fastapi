@@ -71,3 +71,29 @@ app = FastAPI(lifespan=lifespan)
 4. Tests for each.
 
 Answer at the start of Video 22.
+
+## Homework answer
+The full code is in [22-databases-orms](../22-databases-orms) (`app/routers/courses.py`, `app/main.py`, `app/services/course_service.py`, tests).
+```python
+# 1. routers/courses.py - a background task when a course is created
+course = course_service.create_course(data)
+background_tasks.add_task(write_log, f"course created: {course.title}", settings.log_file)
+
+# 2. + 3. main.py - lifespan
+if config.load_seed_data:
+    if config.seed_file.exists():
+        count = course_service.load_courses(config.seed_file)
+    else:
+        print(f"Warning: {config.seed_file} not found - starting with empty data")
+yield
+saved = course_service.save_courses(config.backup_file)     # save BEFORE clearing
+course_service.COURSES.clear()
+
+# services/course_service.py
+def save_courses(path: Path) -> int:
+    rows = [course.model_dump(exclude={"id"}) for course in COURSES.values()]
+    path.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+    return len(rows)
+```
+- New setting `backup_file: Path = Path("data/backup_courses.json")` (in `.gitignore`).
+- Tests: `test_course_created_is_logged`, `test_missing_seed_file_does_not_crash` (uses `capsys` to read what was printed), `test_shutdown_saves_a_backup`.

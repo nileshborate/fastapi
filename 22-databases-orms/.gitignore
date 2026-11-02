@@ -1,0 +1,9 @@
+# secrets stay on your computer
+.env
+__pycache__/
+.venv/
+app.log
+test-app.log
+data/backup_courses.json
+*.db
+test-backup.json

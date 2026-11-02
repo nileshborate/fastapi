@@ -30,6 +30,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 19 | Settings and Environment Variables | [19-settings-env](19-settings-env) |
 | 20 | Middleware and CORS | [20-middleware-cors](20-middleware-cors) |
 | 21 | Background Tasks and Lifespan Events | [21-background-tasks-lifespan](21-background-tasks-lifespan) |
+| 22 | Databases and ORMs Explained | [22-databases-orms](22-databases-orms) |
 
 ## Requirements
 - Python 3.10 or newer

@@ -1,0 +1,4 @@
+fastapi[standard]
+pydantic-settings
+pytest
+sqlalchemy>=2.0
