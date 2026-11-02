@@ -56,6 +56,21 @@ class Sorting:                                              # NEW (Video 25): ?s
 Sort = Annotated[Sorting, Depends()]
 
 
+class StudentQuery:                                         # homework answer (Video 25)
+    def __init__(
+        self,
+        q: Annotated[str | None, Query(min_length=1, max_length=50)] = None,
+        sort_by: Literal["id", "name", "email", "created_at"] = "id",
+        order: SortOrder = "asc",
+    ) -> None:
+        self.q = q
+        self.sort_by = sort_by
+        self.order = order
+
+
+StudentSearch = Annotated[StudentQuery, Depends()]
+
+
 # ---------------------------------------------------------------- 2. checks + loaders (Video 17)
 def verify_api_key(x_api_key: Annotated[str, Header()], settings: SettingsDep) -> None:
     expected = settings.api_key.get_secret_value()

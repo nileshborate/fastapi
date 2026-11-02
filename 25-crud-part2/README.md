@@ -26,7 +26,7 @@ pip install -r requirements.txt
 copy .env.example .env          # Linux/Mac: cp .env.example .env  - then set API_KEY
 del coursehub.db                # new columns again (updated_at, teachers.email) - Alembic comes later
 fastapi dev app/main.py
-pytest -v                       # 82 passed
+pytest -v                       # 87 passed (82 + 5 homework-answer tests)
 ```
 
 ## PUT vs PATCH
@@ -69,3 +69,28 @@ query.order_by(column.desc() if order == "desc" else column.asc(), Course.id)
 4. Tests for each.
 
 Answer at the start of Video 26.
+
+## Homework answer
+Shown at the start of Video 26. The code is in THIS folder: `app/schemas/student.py` (StudentUpdate), `app/services/student_service.py`,
+`app/dependencies.py` (StudentQuery), `app/routers/students.py`, `tests/test_homework25.py`.
+```python
+# 1. PATCH /students/{student_id}  - the same pattern as courses
+class StudentUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str | None = Field(default=None, min_length=2, max_length=50)
+    email: EmailStr | None = None
+    # + the same not_null field_validator
+
+@router.patch("/{student_id}", response_model=StudentOut, dependencies=[Depends(verify_api_key)])
+def update_student(student: StudentDep, data: StudentUpdate, db: DBSession) -> Student:
+    return student_service.update_student(db, student, data.model_dump(exclude_unset=True))
+# update_student: setattr for each change -> _commit -> IntegrityError -> 409 "Email already registered"
+
+# 2. DELETE /students/{student_id}  - admins only
+@router.delete("/{student_id}", status_code=204, dependencies=[Depends(verify_api_key), Depends(require_admin)])
+
+# 3. search + sorting + total
+class StudentQuery:
+    def __init__(self, q: ... = None, sort_by: Literal["id", "name", "email", "created_at"] = "id", order: SortOrder = "asc"): ...
+response.headers["X-Total-Count"] = str(student_service.count_matching(db, search.q))
+```
