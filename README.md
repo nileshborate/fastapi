@@ -33,6 +33,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 22 | Databases and ORMs Explained | [22-databases-orms](22-databases-orms) |
 | 23 | Connecting FastAPI to a Database | [23-fastapi-database](23-fastapi-database) |
 | 24 | CRUD with the Database, Part 1 | [24-crud-part1](24-crud-part1) |
+| 25 | CRUD with the Database, Part 2 | [25-crud-part2](25-crud-part2) |
 
 ## Requirements
 - Python 3.10 or newer

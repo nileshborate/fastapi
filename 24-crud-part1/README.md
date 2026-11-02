@@ -71,3 +71,27 @@ async def already_exists_handler(request: Request, exc: AlreadyExistsError) -> J
 4. Tests for each.
 
 Answer at the start of Video 25.
+
+## Homework answer
+The full code is in [25-crud-part2](../25-crud-part2) (`app/routers/courses.py`, `app/models/teacher.py`, `app/dependencies.py`, `tests/test_crud2.py`).
+```python
+# 1. GET /courses/by-title/{title}  - two path parts, so no conflict with /courses/{course_id}
+def get_course_by_title(db: Session, title: str) -> Course:
+    course = db.scalars(select(Course).where(Course.title == title)).first()
+    if course is None:
+        raise NotFoundError("Course")
+    return course
+
+# 2. teachers: a unique email -> 409
+email: Mapped[str] = mapped_column(String(100), unique=True)       # model
+email: EmailStr                                                     # TeacherBase
+except IntegrityError:
+    db.rollback()
+    raise AlreadyExistsError("Email already registered") from None
+
+# 3. TeacherDep
+def get_teacher_or_404(teacher_id: int, db: DBSession) -> Teacher:
+    return teacher_service.get_teacher(db, teacher_id)
+
+TeacherDep = Annotated[Teacher, Depends(get_teacher_or_404)]
+```

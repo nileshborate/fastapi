@@ -1,0 +1,7 @@
+# secrets stay on your computer
+.env
+__pycache__/
+.venv/
+app.log
+test-app.log
+*.db

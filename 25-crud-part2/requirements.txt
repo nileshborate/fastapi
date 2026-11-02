@@ -1,0 +1,5 @@
+fastapi[standard]
+pydantic-settings
+pytest
+sqlalchemy>=2.0
+psycopg[binary]          # only needed for PostgreSQL
