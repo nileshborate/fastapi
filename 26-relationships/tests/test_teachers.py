@@ -14,7 +14,7 @@ def test_teacher_detail_has_the_courses(client: TestClient) -> None:
     add_course(client, "FastAPI Basics", nilesh["id"], 299)
     add_course(client, "Async Python", nilesh["id"], 249)
     body = client.get(f"/teachers/{nilesh['id']}").json()
-    assert body == {"id": 1, "name": "Nilesh", "subject": "FastAPI", "courses": [
+    assert body == {"id": 1, "name": "Nilesh", "subject": "FastAPI", "course_count": 2, "courses": [
         {"id": 1, "title": "FastAPI Basics", "price": 299.0},
         {"id": 2, "title": "Async Python", "price": 249.0},
     ]}

@@ -1,13 +1,16 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.errors import ConflictError, NotFoundError
 from app.models import Teacher
 from app.schemas.teacher import TeacherCreate
 
 
-def list_teachers(db: Session) -> list[Teacher]:
-    return list(db.scalars(select(Teacher).order_by(Teacher.id)).all())
+def list_teachers(db: Session, with_courses: bool = False) -> list[Teacher]:
+    query = select(Teacher).order_by(Teacher.id)
+    if with_courses:                                       # homework answer (Video 26)
+        query = query.options(selectinload(Teacher.courses))
+    return list(db.scalars(query).all())
 
 
 def get_teacher(db: Session, teacher_id: int) -> Teacher:

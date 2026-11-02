@@ -14,6 +14,7 @@ class TeacherOut(BaseModel):
     id: int
     name: str
     subject: str
+    course_count: int                             # homework answer (Video 26)
 
 
 class CourseBrief(BaseModel):                     # a course INSIDE a teacher - no teacher again

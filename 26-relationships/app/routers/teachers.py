@@ -9,9 +9,12 @@ from app.services import teacher_service
 router = APIRouter(prefix="/teachers", tags=["Teachers"])
 
 
-@router.get("", response_model=list[TeacherOut])
-def list_teachers(db: DBSession) -> list[Teacher]:
-    return teacher_service.list_teachers(db)
+@router.get("", response_model=list[TeacherDetail] | list[TeacherOut])        # homework answer (Video 26)
+def list_teachers(db: DBSession, with_courses: bool = False) -> list[TeacherDetail] | list[TeacherOut]:
+    teachers = teacher_service.list_teachers(db, with_courses)
+    if with_courses:
+        return [TeacherDetail.model_validate(t) for t in teachers]
+    return [TeacherOut.model_validate(t) for t in teachers]
 
 
 @router.get("/{teacher_id}", response_model=TeacherDetail)        # the teacher + the courses

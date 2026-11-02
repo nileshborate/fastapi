@@ -35,6 +35,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 24 | CRUD with the Database, Part 1 | [24-crud-part1](24-crud-part1) |
 | 25 | CRUD with the Database, Part 2 | [25-crud-part2](25-crud-part2) |
 | 26 | Relationships: One-to-Many (fresh project) | [26-relationships](26-relationships) |
+| 27 | Many-to-Many (fresh project) | [27-many-to-many](27-many-to-many) |
 
 ## Requirements
 - Python 3.10 or newer

@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
@@ -36,6 +38,20 @@ def create_course(db: Session, data: CourseCreate) -> Course:
         db.rollback()
         raise ConflictError("Course title already exists") from None
     db.refresh(course)
+    return course
+
+
+def update_course(db: Session, course: Course, changes: dict[str, Any]) -> Course:   # homework (Video 26)
+    if "teacher_id" in changes and db.get(Teacher, changes["teacher_id"]) is None:
+        raise NotFoundError("Teacher")
+    for field, value in changes.items():
+        setattr(course, field, value)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise ConflictError("Course title already exists") from None
+    db.refresh(course)                                    # also reloads course.teacher later
     return course
 
 

@@ -18,7 +18,7 @@ the **N+1 problem** and `selectinload`, and what to do when a teacher who still 
 │   ├── routers/  teachers.py · courses.py
 │   ├── dependencies.py · main.py
 ├── demos/n_plus_one.py             # python -m demos.n_plus_one
-└── tests/                          # 16 tests
+└── tests/                          # 16 tests + test_homework26.py
 ```
 
 ## Run it
@@ -28,7 +28,7 @@ pip install -r requirements.txt
 copy .env.example .env          # Linux/Mac: cp .env.example .env
 fastapi dev app/main.py
 python -m demos.n_plus_one      # lazy: 6 queries · selectinload: 2 queries
-pytest -v                       # 16 passed (on PostgreSQL too)
+pytest -v                       # 21 passed: 16 + 5 homework-answer tests (on PostgreSQL too)
 ```
 
 ## The models
@@ -61,3 +61,26 @@ select(Course).options(selectinload(Course.teacher))
 4. Tests for each.
 
 Answer at the start of Video 27.
+
+## Homework answer
+Shown at the start of Video 27. The code is in THIS folder (`schemas/course.py`, `services/course_service.py`, `routers/courses.py`,
+`services/teacher_service.py`, `routers/teachers.py`, `models/teacher.py`, `tests/test_homework26.py`).
+```python
+# 1. PATCH /courses/{course_id} - move a course to another teacher
+class CourseUpdate(BaseModel):          # title · price · teacher_id - all optional, null not allowed
+    ...
+if "teacher_id" in changes and db.get(Teacher, changes["teacher_id"]) is None:
+    raise NotFoundError("Teacher")      # 404 before we change anything
+
+# 2. GET /teachers?with_courses=true - 2 queries, tested with before_cursor_execute
+if with_courses:
+    query = query.options(selectinload(Teacher.courses))
+return [TeacherDetail.model_validate(t) for t in teachers]       # else: TeacherOut - 1 query
+
+# 3. course_count - counted INSIDE the same SELECT (column_property + a scalar subquery)
+course_count: Mapped[int] = column_property(
+    select(func.count(Course.id)).where(Course.teacher_id == id).correlate_except(Course).scalar_subquery()
+)
+# SELECT (SELECT count(courses.id) FROM courses WHERE courses.teacher_id = teachers.id) AS anon_1, teachers.id, ...
+```
+Why not `len(teacher.courses)`? That loads every course of every teacher – the N+1 problem again.
