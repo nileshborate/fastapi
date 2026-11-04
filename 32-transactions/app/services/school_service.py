@@ -1,11 +1,17 @@
-from sqlalchemy import update
+from sqlalchemy import delete, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
 from app.errors import ConflictError, NotFoundError
 from app.models import Course, Enrollment, Student
-from app.schemas.school import CourseCreate, CourseUpdate, EnrollmentOut, StudentCreate
+from app.schemas.school import (
+    CourseCreate,
+    CourseUpdate,
+    EnrollmentOut,
+    StudentCreate,
+    TopUp,
+)
 
 
 def create_student(db: Session, data: StudentCreate) -> Student:
@@ -82,3 +88,39 @@ def update_course(db: Session, course: Course, data: CourseUpdate) -> Course:
         db.rollback()
         raise ConflictError("Course was changed by someone else - reload it") from None
     return course
+
+
+# ---------------------------------------------------------------- homework answer (Video 32)
+def unenroll(db: Session, student_id: int, course_id: int) -> None:
+    """Three changes back - ONE transaction: no enrollment, the seat back, the money back."""
+    course = get_or_404(db, Course, course_id)
+    removed = db.execute(
+        delete(Enrollment).where(
+            Enrollment.student_id == student_id, Enrollment.course_id == course_id
+        )
+    )
+    if removed.rowcount == 0:                   # nothing to undo - nothing changed yet
+        raise NotFoundError("Enrollment")
+    db.execute(
+        update(Course).where(Course.id == course_id).values(seats_left=Course.seats_left + 1)
+    )
+    db.execute(
+        update(Student)
+        .where(Student.id == student_id)
+        .values(balance=Student.balance + course.fee)
+    )
+    db.commit()                                 # all three - or (on any error) none
+
+
+def top_up(db: Session, student_id: int, data: TopUp) -> Student:
+    get_or_404(db, Student, student_id)
+    # atomic: the database adds to the CURRENT value - never read-modify-write
+    db.execute(
+        update(Student)
+        .where(Student.id == student_id)
+        .values(balance=Student.balance + data.amount)
+    )
+    db.commit()
+    student = db.get(Student, student_id)
+    db.refresh(student)
+    return student

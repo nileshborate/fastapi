@@ -26,7 +26,7 @@ copy .env.example .env          # Linux/Mac: cp .env.example .env
 alembic upgrade head
 fastapi dev app/main.py
 python -m demos.lost_update     # the four cases below - in your terminal
-pytest -v                       # 9 passed, 1 skipped (SQLite)  ·  10 passed on PostgreSQL
+pytest -v                       # 13 passed, 1 skipped (SQLite)  ·  14 passed on PostgreSQL
 ```
 
 ## 1. A transaction: all or nothing
@@ -79,3 +79,26 @@ class Course(Base):
 3. Tests for each – including two sessions that top up at the same time: both amounts must arrive.
 
 Answer at the start of Video 33 (Async Database Part 1).
+
+## Homework answer
+Shown at the start of Video 33. The code is in THIS folder (`services/school_service.py`, `routers/school.py`,
+`schemas/school.py`, `tests/test_homework32.py`) – now **13 passed + 1 skipped** (14 on PostgreSQL).
+```python
+# 1. DELETE /enrollments/{student_id}/{course_id} - three changes back, ONE transaction
+removed = db.execute(delete(Enrollment).where(Enrollment.student_id == student_id,
+                                              Enrollment.course_id == course_id))
+if removed.rowcount == 0:
+    raise NotFoundError("Enrollment")                       # nothing changed yet
+db.execute(update(Course).where(Course.id == course_id)
+           .values(seats_left=Course.seats_left + 1))        # the seat back
+db.execute(update(Student).where(Student.id == student_id)
+           .values(balance=Student.balance + course.fee))    # the money back
+db.commit()
+
+# 2. POST /students/{student_id}/top-up {"amount": 200} - atomic, never read-modify-write
+class TopUp(BaseModel):
+    amount: int = Field(gt=0, le=10_000)
+db.execute(update(Student).where(Student.id == student_id)
+           .values(balance=Student.balance + data.amount))  # balance = balance + :amount
+```
+Two sessions that both read 500 and top up 100 and 200: the balance is **800** – nothing is lost.

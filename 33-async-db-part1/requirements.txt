@@ -1,0 +1,7 @@
+fastapi[standard]
+pydantic-settings
+sqlalchemy[asyncio]>=2.0     # NEW: [asyncio] installs greenlet
+aiosqlite                    # NEW: the async SQLite driver
+asyncpg                      # NEW: the async PostgreSQL driver
+alembic
+pytest

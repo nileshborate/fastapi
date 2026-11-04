@@ -48,6 +48,12 @@ class EnrollmentCreate(BaseModel):
     course_id: int
 
 
+class TopUp(BaseModel):                     # homework (Video 32)
+    model_config = ConfigDict(extra="forbid")
+
+    amount: int = Field(gt=0, le=10_000)
+
+
 class EnrollmentOut(BaseModel):
     student_id: int
     course_id: int

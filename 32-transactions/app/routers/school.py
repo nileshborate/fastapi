@@ -11,6 +11,7 @@ from app.schemas.school import (
     EnrollmentOut,
     StudentCreate,
     StudentOut,
+    TopUp,
 )
 from app.services import school_service as service
 
@@ -49,3 +50,15 @@ def update_course(course_id: int, data: CourseUpdate, db: Session = Depends(get_
              tags=["Enrollments"])
 def enroll(data: EnrollmentCreate, db: Session = Depends(get_db)) -> EnrollmentOut:
     return service.enroll(db, data.student_id, data.course_id)
+
+
+# ---------------------------------------------------------------- homework answer (Video 32)
+@router.delete("/enrollments/{student_id}/{course_id}", status_code=status.HTTP_204_NO_CONTENT,
+               tags=["Enrollments"])
+def unenroll(student_id: int, course_id: int, db: Session = Depends(get_db)) -> None:
+    service.unenroll(db, student_id, course_id)
+
+
+@router.post("/students/{student_id}/top-up", response_model=StudentOut, tags=["Students"])
+def top_up(student_id: int, data: TopUp, db: Session = Depends(get_db)) -> Student:
+    return service.top_up(db, student_id, data)
