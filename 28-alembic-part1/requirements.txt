@@ -1,0 +1,6 @@
+fastapi[standard]
+pydantic-settings
+sqlalchemy>=2.0
+alembic                  # NEW: database migrations
+psycopg[binary]          # only needed for PostgreSQL
+pytest

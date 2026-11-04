@@ -7,7 +7,7 @@ def test_enroll(client: TestClient) -> None:
     asha, course = add_student(client), add_course(client)
     response = enroll(client, asha["id"], course["id"])
     assert response.status_code == 201
-    assert response.json()["courses"] == [{"id": 1, "title": "FastAPI Basics", "price": 299.0}]
+    assert response.json()["courses"] == [{"id": 1, "title": "FastAPI Basics", "price": 299.0, "max_students": 30, "student_count": 1}]
 
 
 def test_both_sides_see_the_enrollment(client: TestClient) -> None:

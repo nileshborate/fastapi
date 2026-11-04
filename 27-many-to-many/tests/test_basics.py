@@ -5,7 +5,7 @@ from tests.conftest import add_course, add_student
 
 def test_create_student_and_course(client: TestClient) -> None:
     assert add_student(client) == {"id": 1, "name": "Asha", "email": "asha@example.com"}
-    assert add_course(client) == {"id": 1, "title": "FastAPI Basics", "price": 299.0}
+    assert add_course(client) == {"id": 1, "title": "FastAPI Basics", "price": 299.0, "max_students": 30, "student_count": 0}
 
 
 def test_duplicates_are_409(client: TestClient) -> None:

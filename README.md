@@ -36,6 +36,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 25 | CRUD with the Database, Part 2 | [25-crud-part2](25-crud-part2) |
 | 26 | Relationships: One-to-Many (fresh project) | [26-relationships](26-relationships) |
 | 27 | Many-to-Many (fresh project) | [27-many-to-many](27-many-to-many) |
+| 28 | Alembic Part 1: Migrations (fresh project) | [28-alembic-part1](28-alembic-part1) |
 
 ## Requirements
 - Python 3.10 or newer

@@ -23,7 +23,7 @@ cd 27-many-to-many
 pip install -r requirements.txt
 copy .env.example .env          # Linux/Mac: cp .env.example .env
 fastapi dev app/main.py
-pytest -v                       # 15 passed (on PostgreSQL too)
+pytest -v                       # 19 passed: 15 + 4 homework-answer tests (on PostgreSQL too)
 ```
 
 ## The link table
@@ -61,3 +61,25 @@ class Course(Base):
 4. Tests for each.
 
 Answer at the start of Video 28.
+
+## Homework answer
+Shown at the start of Video 28. The code is in THIS folder (`models/course.py`, `schemas/course.py`,
+`services/student_service.py`, `routers/students.py`, `tests/test_homework27.py`).
+```python
+# 1. max_students - a full course -> 409
+max_students: Mapped[int] = mapped_column(default=30)                 # model
+max_students: int = Field(default=30, ge=1)                            # CourseCreate
+if len(course.students) >= course.max_students:                        # enroll()
+    raise ConflictError("Course is full")
+
+# 2. GET /students/{student_id}/courses
+@router.get("/{student_id}/courses", response_model=list[CourseOut])
+def list_student_courses(student: StudentDep) -> list[Course]:
+    return student.courses
+
+# 3. student_count - counted in the same SELECT, straight from the link table
+student_count: Mapped[int] = column_property(
+    select(func.count()).where(enrollments.c.course_id == id).correlate_except(enrollments).scalar_subquery()
+)
+# enroll() calls db.refresh(course) after the commit, so the answer shows the NEW count
+```

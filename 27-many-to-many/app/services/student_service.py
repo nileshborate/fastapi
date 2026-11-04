@@ -38,8 +38,11 @@ def delete_student(db: Session, student: Student) -> None:
 def enroll(db: Session, student: Student, course: Course) -> Student:
     if course in student.courses:            # loads the student's courses (one SELECT)
         raise ConflictError("Already enrolled")
+    if len(course.students) >= course.max_students:          # homework answer (Video 27)
+        raise ConflictError("Course is full")
     student.courses.append(course)           # just a Python list ...
     db.commit()                              # ... -> INSERT INTO enrollments (student_id, course_id)
+    db.refresh(course)                       # homework (Video 27): read the new student_count
     return student
 
 

@@ -1,8 +1,9 @@
 from fastapi import APIRouter, status
 
 from app.dependencies import CourseDep, DBSession, StudentDep
-from app.models import Student
+from app.models import Course, Student
 from app.schemas.details import StudentDetail
+from app.schemas.course import CourseOut
 from app.schemas.student import StudentCreate, StudentOut
 from app.services import student_service
 
@@ -17,6 +18,11 @@ def list_students(db: DBSession) -> list[Student]:
 @router.get("/{student_id}", response_model=StudentDetail)              # the student + the courses
 def get_student(student: StudentDep) -> Student:
     return student
+
+
+@router.get("/{student_id}/courses", response_model=list[CourseOut])    # homework answer (Video 27)
+def list_student_courses(student: StudentDep) -> list[Course]:
+    return student.courses
 
 
 @router.post("", response_model=StudentOut, status_code=status.HTTP_201_CREATED)
