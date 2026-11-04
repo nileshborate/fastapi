@@ -67,3 +67,26 @@ would need a new query.
 3. An async test that reads a teacher's courses with `awaitable_attrs`.
 
 Answer at the start of Video 34 (Async Database Part 2).
+
+## Homework answer (shown at the start of Video 34)
+```python
+# schemas/school.py
+class CourseBrief(BaseModel):          # no teacher inside -> no loop, nothing extra to load
+    id: int; title: str; fee: int
+class TeacherDetail(TeacherOut):
+    courses: list[CourseBrief]
+class CourseUpdate(BaseModel):
+    fee: int = Field(ge=0)
+
+# routers/teachers.py - the courses come in the SAME await
+teacher = await db.get(Teacher, teacher_id, options=[selectinload(Teacher.courses)])
+
+# routers/courses.py - PATCH
+course = await db.get(Course, course_id, options=[WITH_TEACHER])   # None -> 404
+course.fee = data.fee        # just Python, no await
+await db.commit()            # the UPDATE runs here
+
+# tests/test_homework33.py - an async test
+courses = await teacher.awaitable_attrs.courses
+```
+`pytest` → **10 passed** (SQLite with aiosqlite and PostgreSQL with asyncpg).

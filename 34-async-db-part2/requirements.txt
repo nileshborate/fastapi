@@ -1,0 +1,7 @@
+fastapi[standard]            # includes httpx - used by the async tests and the benchmark
+pydantic-settings
+sqlalchemy[asyncio]>=2.0
+aiosqlite
+asyncpg
+alembic
+pytest

@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models import Course, Teacher
-from app.schemas.school import CourseCreate, CourseOut
+from app.schemas.school import CourseCreate, CourseOut, CourseUpdate
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
 
@@ -46,3 +46,14 @@ async def create_course(data: CourseCreate, db: DB) -> Course:
                             detail="Course title already exists") from None
     await db.refresh(course, attribute_names=["teacher"])     # load the teacher for the answer
     return course
+
+
+# ---------------------------------------------------------------- homework answer (Video 33)
+@router.patch("/{course_id}", response_model=CourseOut)
+async def update_course(course_id: int, data: CourseUpdate, db: DB) -> Course:
+    course = await db.get(Course, course_id, options=[WITH_TEACHER])
+    if course is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    course.fee = data.fee                   # just Python - no await
+    await db.commit()                       # the UPDATE runs here
+    return course                           # expire_on_commit=False: teacher still loaded
