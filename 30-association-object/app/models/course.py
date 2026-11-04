@@ -25,3 +25,11 @@ class Course(Base):
     average_grade: Mapped[float | None] = column_property(
         select(func.avg(Enrollment.grade)).where(Enrollment.course_id == id).correlate_except(Enrollment).scalar_subquery()
     )
+
+    # homework (Video 30): how many enrollments are completed
+    completed_count: Mapped[int] = column_property(
+        select(func.count())
+        .where(Enrollment.course_id == id, Enrollment.status == "completed")
+        .correlate_except(Enrollment)
+        .scalar_subquery()
+    )

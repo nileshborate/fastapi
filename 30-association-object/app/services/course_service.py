@@ -18,11 +18,13 @@ def get_course(db: Session, course_id: int) -> Course:
     return course
 
 
-def get_course_detail(db: Session, course_id: int) -> Course:
+def get_course_detail(db: Session, course_id: int, status: str | None = None) -> Course:
+    # homework (Video 30): ?status=active -> only those enrollments are loaded
+    roster = Course.enrollments.and_(Enrollment.status == status) if status else Course.enrollments
     stmt = (
         select(Course)
         .where(Course.id == course_id)
-        .options(selectinload(Course.enrollments).selectinload(Enrollment.student))
+        .options(selectinload(roster).selectinload(Enrollment.student))
     )
     course = db.scalars(stmt).one_or_none()
     if course is None:

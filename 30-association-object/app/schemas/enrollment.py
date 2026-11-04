@@ -1,10 +1,13 @@
 # The association object in the API: the link's own data + the object on the OTHER side
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.course import CourseOut
 from app.schemas.student import StudentOut
+
+Status = Literal["active", "completed", "dropped"]          # homework (Video 30)
 
 
 class EnrollmentCreate(BaseModel):
@@ -13,10 +16,11 @@ class EnrollmentCreate(BaseModel):
     course_id: int
 
 
-class GradeUpdate(BaseModel):
+class EnrollmentUpdate(BaseModel):          # homework (Video 30): grade AND/OR status
     model_config = ConfigDict(extra="forbid")
 
-    grade: int = Field(ge=0, le=100)
+    grade: int | None = Field(default=None, ge=0, le=100)
+    status: Status | None = None
 
 
 class EnrollmentOut(BaseModel):              # seen from a student: which course, when, which grade
@@ -25,6 +29,7 @@ class EnrollmentOut(BaseModel):              # seen from a student: which course
     course: CourseOut
     enrolled_at: datetime
     grade: int | None
+    status: str
 
 
 class RosterRow(BaseModel):                  # seen from a course: which student, when, which grade
@@ -33,6 +38,7 @@ class RosterRow(BaseModel):                  # seen from a course: which student
     student: StudentOut
     enrolled_at: datetime
     grade: int | None
+    status: str
 
 
 class StudentDetail(StudentOut):

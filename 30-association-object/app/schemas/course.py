@@ -15,3 +15,4 @@ class CourseOut(BaseModel):
     title: str
     fee: float
     average_grade: float | None          # computed by the database (column_property)
+    completed_count: int                 # homework (Video 30)

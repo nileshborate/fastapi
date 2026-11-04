@@ -3,7 +3,7 @@ from fastapi import APIRouter, status
 from app.dependencies import DBSession
 from app.models import Course
 from app.schemas.course import CourseCreate, CourseOut
-from app.schemas.enrollment import CourseDetail
+from app.schemas.enrollment import CourseDetail, Status
 from app.services import course_service
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
@@ -20,5 +20,5 @@ def create_course(data: CourseCreate, db: DBSession) -> Course:
 
 
 @router.get("/{course_id}", response_model=CourseDetail)                # + the roster (student, enrolled_at, grade)
-def get_course(course_id: int, db: DBSession) -> Course:
-    return course_service.get_course_detail(db, course_id)
+def get_course(course_id: int, db: DBSession, status: Status | None = None) -> Course:
+    return course_service.get_course_detail(db, course_id, status)     # ?status=active (homework)

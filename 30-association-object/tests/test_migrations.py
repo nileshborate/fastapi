@@ -11,7 +11,7 @@ from app.database import Base, engine
 
 
 def test_only_one_head(alembic_cfg: Config) -> None:
-    assert ScriptDirectory.from_config(alembic_cfg).get_heads() == ["0002"]
+    assert ScriptDirectory.from_config(alembic_cfg).get_heads() == ["0003"]
 
 
 def test_models_match_the_migrations(client: TestClient) -> None:

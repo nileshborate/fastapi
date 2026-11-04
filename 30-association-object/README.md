@@ -26,7 +26,7 @@ pip install -r requirements.txt
 copy .env.example .env          # Linux/Mac: cp .env.example .env
 alembic upgrade head
 fastapi dev app/main.py
-pytest -v                       # 13 passed (on PostgreSQL too)
+pytest -v                       # 17 passed (13 + 4 homework; on PostgreSQL too)
 ```
 
 ## The association object
@@ -82,3 +82,32 @@ select(Student).options(selectinload(Student.enrollments).selectinload(Enrollmen
 4. Tests for each.
 
 Answer at the start of Video 31 (Advanced Queries).
+
+## Homework answer
+Shown at the start of Video 31. The code is in THIS folder (`alembic/versions/0003_enrollment_status.py`,
+`models/enrollment.py`, `models/course.py`, `schemas/enrollment.py`, `services/`, `routers/`, `tests/test_homework30.py`) – now **17 tests**.
+```python
+# 1. the column + migration 0003 (autogenerate): old rows get "active"
+status: Mapped[str] = mapped_column(String(20), server_default="active")
+batch_op.add_column(sa.Column("status", sa.String(length=20), server_default="active", nullable=False))
+
+# PATCH /students/{student_id}/enrollments/{course_id}  {"status": "completed"}  - grade and/or status
+Status = Literal["active", "completed", "dropped"]
+class EnrollmentUpdate(BaseModel):
+    grade: int | None = Field(default=None, ge=0, le=100)
+    status: Status | None = None
+for field, value in data.model_dump(exclude_unset=True, exclude_none=True).items():
+    setattr(enrollment, field, value)
+
+# 2. GET /courses/{course_id}?status=active - load ONLY those enrollments
+roster = Course.enrollments.and_(Enrollment.status == status) if status else Course.enrollments
+select(Course).where(Course.id == course_id).options(selectinload(roster).selectinload(Enrollment.student))
+
+# 3. completed_count - counted by the database
+completed_count: Mapped[int] = column_property(
+    select(func.count())
+    .where(Enrollment.course_id == id, Enrollment.status == "completed")
+    .correlate_except(Enrollment)
+    .scalar_subquery()
+)
+```

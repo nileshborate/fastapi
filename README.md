@@ -39,6 +39,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 28 | Alembic Part 1: Migrations (fresh project) | [28-alembic-part1](28-alembic-part1) |
 | 29 | Alembic Part 2: Autogenerate, Renames, Data Migrations (fresh project) | [29-alembic-part2](29-alembic-part2) |
 | 30 | The Association Object: a Link with Its Own Data (fresh project) | [30-association-object](30-association-object) |
+| 31 | Advanced Queries: Joins, Group By, Having, Exists, Pagination (fresh project) | [31-advanced-queries](31-advanced-queries) |
 
 ## Requirements
 - Python 3.10 or newer

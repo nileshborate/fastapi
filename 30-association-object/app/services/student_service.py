@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.errors import ConflictError, NotFoundError
 from app.models import Course, Enrollment, Student
+from app.schemas.enrollment import EnrollmentUpdate
 from app.schemas.student import StudentCreate
 
 
@@ -65,8 +66,10 @@ def enroll(db: Session, student: Student, course: Course) -> Enrollment:
     return enrollment
 
 
-def set_grade(db: Session, enrollment: Enrollment, grade: int) -> Enrollment:
-    enrollment.grade = grade                 # UPDATE enrollments SET grade=? WHERE student_id=? AND course_id=?
+def update_enrollment(db: Session, enrollment: Enrollment, data: EnrollmentUpdate) -> Enrollment:
+    # homework (Video 30): only the fields that were sent - grade and/or status
+    for field, value in data.model_dump(exclude_unset=True, exclude_none=True).items():
+        setattr(enrollment, field, value)    # UPDATE enrollments SET ... WHERE student_id=? AND course_id=?
     db.commit()
     db.refresh(enrollment.course)            # the course's average_grade changed
     return enrollment

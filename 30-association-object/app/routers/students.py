@@ -3,7 +3,7 @@ from fastapi import APIRouter, status
 from app.dependencies import DBSession, EnrollmentDep, StudentDep
 from app.models import Course, Enrollment, Student
 from app.schemas.course import CourseOut
-from app.schemas.enrollment import EnrollmentCreate, EnrollmentOut, GradeUpdate, StudentDetail
+from app.schemas.enrollment import EnrollmentCreate, EnrollmentOut, EnrollmentUpdate, StudentDetail
 from app.schemas.student import StudentCreate, StudentOut
 from app.services import course_service, student_service
 
@@ -43,8 +43,8 @@ def enroll(student: StudentDep, data: EnrollmentCreate, db: DBSession) -> Enroll
 
 
 @router.patch("/{student_id}/enrollments/{course_id}", response_model=EnrollmentOut)
-def set_grade(enrollment: EnrollmentDep, data: GradeUpdate, db: DBSession) -> Enrollment:
-    return student_service.set_grade(db, enrollment, data.grade)
+def update_enrollment(enrollment: EnrollmentDep, data: EnrollmentUpdate, db: DBSession) -> Enrollment:
+    return student_service.update_enrollment(db, enrollment, data)      # grade and/or status
 
 
 @router.delete("/{student_id}/enrollments/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
