@@ -26,7 +26,7 @@ copy .env.example .env          # Linux/Mac: cp .env.example .env
 alembic upgrade head
 python -m app.seed              # 3 teachers, 6 courses, 6 students, 11 enrollments
 fastapi dev app/main.py
-pytest -v                       # 13 passed (on PostgreSQL too)
+pytest -v                       # 17 passed (13 + 4 homework; on PostgreSQL too)
 ```
 
 ## Endpoints
@@ -75,3 +75,30 @@ select(Student).where(~Student.enrollments.any())     # WHERE NOT (EXISTS (SELEC
 4. Tests for each.
 
 Answer at the start of Video 32 (Transactions and Concurrency).
+
+## Homework answer
+Shown at the start of Video 32. The code is in THIS folder (`schemas/student.py`, `services/student_service.py`,
+`routers/students.py`, `schemas/course.py`, `services/course_service.py`, `tests/test_homework31.py`) – now **17 tests**.
+```python
+# 1. GET /students?city=Pune&page=1&size=2 - a GROUP BY inside a page
+stmt = (
+    select(Student.id, Student.name, Student.city,
+           func.count(Enrollment.course_id).label("courses"))       # NOT count(*)
+    .outerjoin(Student.enrollments)                                  # Dev: 0 courses
+    .group_by(Student.id, Student.name, Student.city)
+)
+if f.city:
+    stmt = stmt.where(Student.city == f.city)
+total = db.scalar(select(func.count()).select_from(stmt.subquery()))   # counts the GROUPS
+
+# 2. GET /reports/top-students?limit=3 - only graded enrollments, best first
+average = func.avg(Enrollment.grade).label("average_grade")
+select(Student.name, average).join(Student.enrollments).where(Enrollment.grade.is_not(None))
+    .group_by(Student.id, Student.name).order_by(average.desc(), Student.id).limit(limit)
+
+# 3. sort - a whitelist, always + Course.id so the order is unique
+Sort = Literal["id", "title", "fee", "-fee"]
+SORTS = {"id": [Course.id], "title": [Course.title, Course.id],
+         "fee": [Course.fee, Course.id], "-fee": [Course.fee.desc(), Course.id]}
+stmt.order_by(*SORTS[f.sort])
+```

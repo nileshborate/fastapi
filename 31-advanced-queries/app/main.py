@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.database import engine
-from app.routers import courses, reports
+from app.routers import courses, reports, students
 
 
 @asynccontextmanager
@@ -18,6 +18,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="School API", version="1.0.0", lifespan=lifespan)
 app.include_router(courses.router)
 app.include_router(reports.router)
+app.include_router(students.router)              # homework (Video 31)
 
 
 @app.get("/", tags=["Health"])
