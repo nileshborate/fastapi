@@ -20,7 +20,7 @@ def list_courses(db: Session = Depends(get_db)) -> list[Course]:
 def create_course(data: CourseCreate, db: Session = Depends(get_db)) -> Course:
     if data.teacher_id is not None and db.get(Teacher, data.teacher_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
-    course = Course(**data.model_dump(), slug=slugify(data.title))
+    course = Course(**data.model_dump(), slug=slugify(data.title), fee_paise=round(data.fee * 100))   # fee_paise: homework 29
     db.add(course)
     try:
         db.commit()

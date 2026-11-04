@@ -31,7 +31,7 @@ pip install -r requirements.txt
 copy .env.example .env          # Linux/Mac: cp .env.example .env
 alembic upgrade head
 fastapi dev app/main.py
-pytest -v                       # 10 passed (on PostgreSQL too)
+pytest -v                       # 14 passed (10 + 4 homework; on PostgreSQL too)
 ```
 
 ## The commands
@@ -104,3 +104,33 @@ assert ScriptDirectory.from_config(alembic_cfg).get_heads() == ["0007"]
 3. Tests: old rows keep their teacher after the rename; `fee_paise` is filled; still only one head.
 
 Answer at the start of Video 30 (Association Object).
+
+## Homework answer
+Shown at the start of Video 30. The code is in THIS folder (`alembic/versions/0008_instructors_and_fee_paise.py`,
+`models/course.py`, `models/teacher.py`, `routers/courses.py`, `schemas/course.py`, `tests/test_homework29.py`) – now **14 tests**.
+
+Autogenerate wrote `create_table("instructors")` + `drop_table("teachers")` – every teacher would be lost. Fixed by hand:
+```python
+courses = sa.table("courses", sa.column("fee", sa.Double), sa.column("fee_paise", sa.Integer))   # frozen copy
+
+def upgrade() -> None:
+    op.rename_table("teachers", "instructors")                     # the rows stay
+    with op.batch_alter_table("courses") as batch_op:
+        batch_op.drop_constraint("fk_courses_teacher_id_teachers", type_="foreignkey")
+        batch_op.create_foreign_key("fk_courses_teacher_id_instructors", "instructors", ["teacher_id"], ["id"])
+        batch_op.add_column(sa.Column("fee_paise", sa.Integer(), nullable=True))      # nullable first ...
+    op.execute(courses.update().values(fee_paise=sa.cast(sa.func.round(courses.c.fee * 100), sa.Integer)))   # ... fill ...
+    with op.batch_alter_table("courses") as batch_op:
+        batch_op.alter_column("fee_paise", existing_type=sa.Integer(), nullable=False)  # ... NOT NULL
+
+def downgrade() -> None:
+    with op.batch_alter_table("courses") as batch_op:
+        batch_op.drop_column("fee_paise")
+        batch_op.drop_constraint("fk_courses_teacher_id_instructors", type_="foreignkey")
+    op.rename_table("instructors", "teachers")                     # rename FIRST ...
+    with op.batch_alter_table("courses") as batch_op:              # ... then the key (PostgreSQL checks that "teachers" exists)
+        batch_op.create_foreign_key("fk_courses_teacher_id_teachers", "teachers", ["teacher_id"], ["id"])
+```
+The model: `__tablename__ = "instructors"`, `ForeignKey("instructors.id")`, `fee_paise: Mapped[int]` – and new courses get
+`fee_paise=round(data.fee * 100)`. On PostgreSQL it's `ALTER TABLE teachers RENAME TO instructors` and
+`UPDATE courses SET fee_paise=CAST(round(courses.fee * 100) AS INTEGER)`.

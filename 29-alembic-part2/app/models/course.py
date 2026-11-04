@@ -10,9 +10,10 @@ class Course(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(100), unique=True)
     fee: Mapped[float]                                                         # was "price"  (0003: a rename)
+    fee_paise: Mapped[int]                                                     # 0008: a data migration (homework)
     slug: Mapped[str] = mapped_column(String(120), unique=True)                # 0004: a data migration
     level: Mapped[str] = mapped_column(String(20), server_default="beginner")  # 0005: Asha's branch
     description: Mapped[str | None] = mapped_column(Text)                      # 0006: Ravi's branch
-    teacher_id: Mapped[int | None] = mapped_column(ForeignKey("teachers.id"))  # 0002: batch mode on SQLite
+    teacher_id: Mapped[int | None] = mapped_column(ForeignKey("instructors.id"))  # 0002: batch mode on SQLite
 
     teacher: Mapped["Teacher | None"] = relationship(back_populates="courses")  # noqa: F821

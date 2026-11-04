@@ -21,6 +21,7 @@ class CourseOut(BaseModel):
     id: int
     title: str
     fee: float
+    fee_paise: int
     slug: str
     level: str
     description: str | None

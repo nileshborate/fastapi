@@ -21,7 +21,7 @@ def version() -> str | None:
 
 def test_only_one_head(alembic_cfg: Config) -> None:
     heads = ScriptDirectory.from_config(alembic_cfg).get_heads()
-    assert heads == ["0007"]                                       # two heads? -> alembic merge heads
+    assert heads == ["0008"]                                       # two heads? -> alembic merge heads
 
 
 def test_models_match_the_migrations(client: TestClient) -> None:
@@ -31,8 +31,8 @@ def test_models_match_the_migrations(client: TestClient) -> None:
 
 
 def test_head_columns(client: TestClient) -> None:
-    assert version() == "0007"
-    assert sorted(columns("courses")) == ["description", "fee", "id", "level", "slug", "teacher_id", "title"]
+    assert version() == "0008"
+    assert sorted(columns("courses")) == ["description", "fee", "fee_paise", "id", "level", "slug", "teacher_id", "title"]
     # sorted: the two branches (0005, 0006) have no fixed order - and they don't need one
 
 
@@ -58,4 +58,4 @@ def test_full_round_trip(client: TestClient, alembic_cfg: Config) -> None:
     command.downgrade(alembic_cfg, "base")                         # every downgrade() works ...
     assert inspect(engine).get_table_names() == ["alembic_version"]
     command.upgrade(alembic_cfg, "head")                           # ... and every upgrade() again
-    assert version() == "0007"
+    assert version() == "0008"

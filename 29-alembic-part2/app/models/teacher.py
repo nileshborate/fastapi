@@ -5,7 +5,7 @@ from app.database import Base
 
 
 class Teacher(Base):
-    __tablename__ = "teachers"
+    __tablename__ = "instructors"                    # was "teachers" (migration 0008, homework)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100))

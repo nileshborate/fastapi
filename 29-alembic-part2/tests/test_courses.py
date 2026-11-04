@@ -5,7 +5,7 @@ def test_create_course_makes_a_slug(client: TestClient) -> None:
     response = client.post("/courses", json={"title": "FastAPI Basics!", "fee": 299})
     assert response.status_code == 201
     assert response.json() == {
-        "id": 1, "title": "FastAPI Basics!", "fee": 299.0, "slug": "fastapi-basics",
+        "id": 1, "title": "FastAPI Basics!", "fee": 299.0, "fee_paise": 29900, "slug": "fastapi-basics",
         "level": "beginner", "description": None, "teacher_id": None,
     }
 
