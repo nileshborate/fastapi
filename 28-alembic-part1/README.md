@@ -26,7 +26,7 @@ pip install -r requirements.txt
 copy .env.example .env          # Linux/Mac: cp .env.example .env
 alembic upgrade head            # create / update the tables
 fastapi dev app/main.py
-pytest -v                       # 8 passed (on PostgreSQL too)
+pytest -v                       # 12 passed (8 + 4 homework; on PostgreSQL too)
 ```
 
 ## The commands
@@ -65,3 +65,28 @@ def downgrade() -> None:
 3. Tests: the version is `0004`; `downgrade -2` goes back to `0002` and both changes are gone.
 
 Answer at the start of Video 29 (Alembic Part 2: autogenerate).
+
+## Homework answer
+Shown at the start of Video 29. The code is in THIS folder (`alembic/versions/0003_…`, `0004_…`,
+`models/course.py`, `models/teacher.py`, `schemas/course.py`, `tests/test_homework28.py`) – now **12 tests**.
+```bash
+alembic revision -m "add is_published to courses" --rev-id 0003
+alembic revision -m "create teachers table" --rev-id 0004
+alembic upgrade head            # Running upgrade 0002 -> 0003 ... 0003 -> 0004
+alembic downgrade -2            # back to 0002
+```
+```python
+# 0003 - a NOT NULL Boolean on a table with rows: server_default=sa.false() (FALSE on PostgreSQL, 0 on SQLite)
+op.add_column("courses", sa.Column("is_published", sa.Boolean(), nullable=False, server_default=sa.false()))
+op.drop_column("courses", "is_published")                                   # downgrade
+
+# 0004 - a new table
+op.create_table("teachers",
+    sa.Column("id", sa.Integer(), primary_key=True),
+    sa.Column("name", sa.String(100), nullable=False))
+op.drop_table("teachers")                                                   # downgrade
+
+# the models must match (test_models_match_the_migrations checks it)
+is_published: Mapped[bool] = mapped_column(server_default=false())           # Course
+class Teacher(Base): __tablename__ = "teachers"; id ...; name: Mapped[str] = mapped_column(String(100))
+```

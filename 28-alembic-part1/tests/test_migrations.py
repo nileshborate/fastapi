@@ -19,15 +19,15 @@ def version() -> str | None:
 
 
 def test_head_creates_the_tables(client: TestClient) -> None:
-    assert sorted(inspect(engine).get_table_names()) == ["alembic_version", "courses"]
-    assert columns("courses") == ["id", "title", "price", "level"]
-    assert version() == "0002"
+    assert sorted(inspect(engine).get_table_names()) == ["alembic_version", "courses", "teachers"]
+    assert columns("courses") == ["id", "title", "price", "level", "is_published"]
+    assert version() == "0004"
 
 
 def test_downgrade_one_step(client: TestClient, alembic_cfg: Config) -> None:
     command.downgrade(alembic_cfg, "-1")
-    assert version() == "0001"
-    assert columns("courses") == ["id", "title", "price"]          # "level" is gone
+    assert version() == "0003"
+    assert "teachers" not in inspect(engine).get_table_names()     # 0004 is undone
 
 
 def test_downgrade_to_base(client: TestClient, alembic_cfg: Config) -> None:
@@ -42,8 +42,8 @@ def test_old_rows_survive_and_get_the_default(client: TestClient, alembic_cfg: C
         conn.execute(text("INSERT INTO courses (title, price) VALUES ('FastAPI Basics', 299), ('Python 101', 99)"))
     command.upgrade(alembic_cfg, "head")                            # add the column - keep the data
     assert client.get("/courses").json() == [
-        {"id": 1, "title": "FastAPI Basics", "price": 299.0, "level": "beginner"},
-        {"id": 2, "title": "Python 101", "price": 99.0, "level": "beginner"},
+        {"id": 1, "title": "FastAPI Basics", "price": 299.0, "level": "beginner", "is_published": False},
+        {"id": 2, "title": "Python 101", "price": 99.0, "level": "beginner", "is_published": False},
     ]
 
 

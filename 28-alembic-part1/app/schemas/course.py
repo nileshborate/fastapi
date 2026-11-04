@@ -11,6 +11,7 @@ class CourseCreate(BaseModel):
     title: str = Field(min_length=3, max_length=100)
     price: float = Field(ge=0)
     level: Level = "beginner"
+    is_published: bool = False
 
 
 class CourseOut(BaseModel):
@@ -20,3 +21,4 @@ class CourseOut(BaseModel):
     title: str
     price: float
     level: str
+    is_published: bool
