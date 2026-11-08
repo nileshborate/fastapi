@@ -1,7 +1,7 @@
 # The rules for accounts: unique email, only hashes, the same answer for every login failure
-from app.errors import AuthError, ConflictError, NotFoundError
+from app.errors import AuthError, ConflictError, NotFoundError, RuleError
 from app.models import User
-from app.schemas import UserCreate
+from app.schemas import UserCreate, check_password_rules
 from app.security import DUMMY_HASH, hash_password, verify_password
 from app.uow import UnitOfWork
 
@@ -39,4 +39,23 @@ class UserService:
         if new_hash is not None:                        # an old (bcrypt) hash: upgrade it
             user.password_hash = new_hash
             await self.uow.commit()
+        return user
+
+    # ------------------------------------------------------------ homework answer (Video 37)
+    async def change_password(self, user_id: int, old: str, new: str) -> None:
+        user = await self.get(user_id)                          # 404
+        ok, _ = verify_password(old, user.password_hash)
+        if not ok:
+            raise AuthError("Wrong password")                   # 401
+        try:
+            check_password_rules(new, user.email)               # the SAME rules
+        except ValueError as error:
+            raise RuleError(str(error)) from None               # 422
+        user.password_hash = hash_password(new)                 # a NEW hash
+        await self.uow.commit()
+
+    async def find_by_email(self, email: str) -> User:
+        user = await self.uow.users.get_by_email(email)         # lower() inside
+        if user is None:
+            raise NotFoundError("User not found")
         return user

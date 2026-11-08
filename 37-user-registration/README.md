@@ -58,3 +58,25 @@ Everything needed to check the password later is inside – the salt too. Nothin
 3. Tests for both – check that the stored hash changed and still starts with `$argon2id$`.
 
 Answer at the start of Video 38 (JWT Explained).
+
+## Homework answer (shown at the start of Video 38)
+```python
+# schemas.py - ONE function for the password rules: registration AND a change
+def check_password_rules(password: str, email: str) -> None: ...
+
+# services/users.py
+async def change_password(self, user_id: int, old: str, new: str) -> None:
+    user = await self.get(user_id)                       # 404
+    ok, _ = verify_password(old, user.password_hash)
+    if not ok:
+        raise AuthError("Wrong password")                # 401
+    check_password_rules(new, user.email)                # ValueError -> RuleError 422
+    user.password_hash = hash_password(new)              # a NEW Argon2 hash
+    await self.uow.commit()
+
+# routers/users.py
+GET   /users?email=ASHA@Example.com    -> get_by_email lower()s it -> 200 or 404
+PATCH /users/{user_id}/password        -> 204
+```
+`tests/test_homework37.py` checks the stored hash changed and still starts with `$argon2id$`.
+`pytest` → **17 passed** (SQLite and PostgreSQL).

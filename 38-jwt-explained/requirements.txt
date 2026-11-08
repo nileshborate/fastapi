@@ -1,0 +1,5 @@
+fastapi[standard]
+pydantic-settings
+pyjwt[crypto]                # NEW: JWTs - [crypto] adds RS256 (cryptography)
+pwdlib[argon2]
+pytest

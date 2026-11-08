@@ -17,3 +17,7 @@ class ConflictError(DomainError):
 
 class AuthError(DomainError):
     status_code = 401
+
+
+class RuleError(DomainError):              # homework (Video 37): a rule says no
+    status_code = 422
