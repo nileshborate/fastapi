@@ -75,3 +75,19 @@ tests/   test_passwords · test_tokens · test_session_login · test_token_login
 3. Tests for both.
 
 Answer at the start of Video 37 (User Registration and Password Hashing).
+
+## Homework answer (shown at the start of Video 37)
+```python
+# routers/token_auth.py - change the password (logged in with a token)
+@router.post("/token/password", status_code=204)
+def change_password(data: PasswordChange, user: ... = Depends(token_user)) -> None:
+    if not verify_password(data.old_password, user.password_hash):
+        raise HTTPException(401, "Wrong password")
+    user.password_hash = hash_password(data.new_password)    # new_password: min_length=8 -> 422
+
+# app/lockout.py + users.check_login - 3 wrong passwords in a row: blocked for 60 s (429)
+if lockout.is_blocked(username):          # BLOCKED_UNTIL[username] > now()
+    raise HTTPException(429, "Too many wrong passwords - try again later")
+```
+Both logins (session and token) use `check_login`. A correct password resets the count.
+`tests/test_homework36.py` replaces `lockout.now` to jump 61 seconds ahead. `pytest` → **16 passed**.

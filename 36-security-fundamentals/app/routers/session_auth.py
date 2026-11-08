@@ -2,23 +2,20 @@
 import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, Response, status
 
 from app.config import get_settings
 from app.deps import session_user
 from app.schemas import LoginIn, UserOut
 from app.sessions import SESSIONS
-from app.users import User, authenticate
+from app.users import User, check_login
 
 router = APIRouter(prefix="/session", tags=["Session login"])
 
 
 @router.post("/login", response_model=UserOut)
 def login(data: LoginIn, response: Response) -> UserOut:
-    user = authenticate(data.username, data.password)
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Wrong username or password")
+    user = check_login(data.username, data.password)       # homework: + lockout (429)
     session_id = secrets.token_urlsafe(32)              # random - impossible to guess
     SESSIONS[session_id] = user.username                # the server remembers it
     settings = get_settings()

@@ -1,0 +1,8 @@
+fastapi[standard]            # includes email-validator (EmailStr) and httpx
+pydantic-settings
+sqlalchemy[asyncio]>=2.0
+aiosqlite
+asyncpg
+alembic
+pwdlib[argon2,bcrypt]        # NEW: Argon2 for new hashes, bcrypt to read old ones
+pytest

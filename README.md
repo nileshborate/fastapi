@@ -45,6 +45,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 34 | Async Database Part 2: asyncio.gather, Sync vs Async Measured, Blocking Code (fresh project) | [34-async-db-part2](34-async-db-part2) |
 | 35 | Clean Architecture: Repository and Service Layers, Unit of Work (fresh project) | [35-clean-architecture](35-clean-architecture) |
 | 36 | Security Fundamentals: Authn vs Authz, Hashing vs Encryption, Sessions vs Tokens (fresh project) | [36-security-fundamentals](36-security-fundamentals) |
+| 37 | User Registration and Password Hashing: Argon2, Unique Email (fresh project) | [37-user-registration](37-user-registration) |
 
 ## Requirements
 - Python 3.10 or newer
