@@ -23,6 +23,12 @@ class UserOut(BaseModel):
     is_active: bool
 
 
+class MeUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    full_name: str = Field(min_length=2, max_length=100)     # homework 40: PATCH /me
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

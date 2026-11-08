@@ -49,6 +49,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 38 | JWT Explained: Header, Payload, Signature, Claims, Expiry, PyJWT (fresh project) | [38-jwt-explained](38-jwt-explained) |
 | 39 | Login with the OAuth2 Password Flow: /token, OAuth2PasswordBearer, Authorize (fresh project) | [39-oauth2-login](39-oauth2-login) |
 | 40 | Protected Routes and the Current User: get_current_user, 401 vs 403, Owner Check (fresh project) | [40-protected-routes](40-protected-routes) |
+| 41 | Refresh Tokens and Logout: Rotation, Reuse Detection, Log Out Everywhere (fresh project) | [41-refresh-tokens](41-refresh-tokens) |
 
 ## Requirements
 - Python 3.10 or newer

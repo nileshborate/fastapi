@@ -16,7 +16,7 @@ alembic upgrade head
 python -m demos.chain          # the order of a dependency chain - get_db runs only ONCE
 python -m demos.tokens         # 7 tokens against GET /me: 401 · 401 · ... · 403 · 200
 fastapi dev app/main.py        # /docs -> POST /users -> Authorize -> POST /courses
-pytest                         # 15 passed (SQLite and PostgreSQL)
+pytest                         # 18 passed (SQLite and PostgreSQL) - 15 + 3 homework
 ```
 
 ## Project
@@ -69,3 +69,25 @@ FastAPI runs every dependency **once per request** and reuses the result (here: 
 3. Tests – one of them with `dependency_overrides`.
 
 Answer at the start of Video 41 (Refresh Tokens and Logout).
+
+## Homework answer (shown at the start of Video 41)
+```python
+# routers/me.py - only YOUR course; somebody else's is a 404, not a 403
+@router.get("/courses/{course_id}", response_model=CourseOut)
+async def my_course(course_id: int, user: CurrentUser, db: DB) -> Course:
+    # 403 would tell an attacker "course 7 exists, it's just not yours"
+    stmt = select(Course).where(Course.id == course_id, Course.owner_id == user.id)
+    course = await db.scalar(stmt)
+    if course is None:
+        raise HTTPException(404, "Course not found")
+    return course
+
+@router.patch("", response_model=UserOut)          # PATCH /me {"full_name": ...}
+async def update_me(data: MeUpdate, user: CurrentUser, db: DB) -> User:
+    user.full_name = data.full_name                 # the user comes from the token
+    await db.commit()
+    ...
+```
+The owner check is part of the `WHERE` – one query, and "not yours" looks exactly like "doesn't
+exist". `tests/test_homework40.py` – 3 tests, one with `dependency_overrides`.
+`pytest` → **18 passed** (SQLite and PostgreSQL).
