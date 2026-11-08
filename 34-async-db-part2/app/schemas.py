@@ -36,3 +36,11 @@ class Stats(BaseModel):         # NEW: four numbers from four queries - at the s
     courses: int
     average_fee: float
     top_courses: list[str]
+
+
+# ---------------------------------------------------------------- homework answer (Video 34)
+class TeacherSummary(BaseModel):
+    id: int
+    name: str
+    courses: int
+    total_fees: int

@@ -38,3 +38,18 @@ async def bench_blocking() -> dict[str, str]:
 async def bench_threadpool() -> dict[str, str]:
     report = await run_in_threadpool(slow_report)   # the sync call goes to a thread
     return {"mode": "threadpool", "report": report}
+
+
+# ---------------------------------------------------------------- homework answer (Video 34)
+REPORT_DELAY = 0.2
+
+
+def make_report() -> dict[str, str]:
+    """A sync function that takes 0.2 s - e.g. a PDF library."""
+    time.sleep(REPORT_DELAY)
+    return {"report": "ready"}
+
+
+@router.get("/report")
+async def bench_report() -> dict[str, str]:
+    return await run_in_threadpool(make_report)     # the event loop stays free

@@ -43,6 +43,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 32 | Transactions & Concurrency: All or Nothing, Locking (fresh project) | [32-transactions](32-transactions) |
 | 33 | Async Database Part 1: async def, AsyncSession, an Async Driver (fresh project) | [33-async-db-part1](33-async-db-part1) |
 | 34 | Async Database Part 2: asyncio.gather, Sync vs Async Measured, Blocking Code (fresh project) | [34-async-db-part2](34-async-db-part2) |
+| 35 | Clean Architecture: Repository and Service Layers, Unit of Work (fresh project) | [35-clean-architecture](35-clean-architecture) |
 
 ## Requirements
 - Python 3.10 or newer

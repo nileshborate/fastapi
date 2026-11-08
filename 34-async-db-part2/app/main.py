@@ -18,6 +18,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="School API", version="1.0.0", lifespan=lifespan)
 app.include_router(school.router)
 app.include_router(stats.router)
+app.include_router(stats.teachers_router)        # homework (Video 34)
 app.include_router(bench.router)
 
 

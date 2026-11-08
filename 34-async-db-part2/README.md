@@ -88,3 +88,21 @@ CPU-heavy work (big PDFs, image resizing) doesn't belong in a request at all –
 3. A test: 20 requests to `/bench/report` at once must finish in well under 20 × 0.2 s.
 
 Answer at the start of Video 35 (Clean Architecture: Repository and Service Layers).
+
+## Homework answer (shown at the start of Video 35)
+```python
+# routers/stats.py - three small queries, each with its OWN session, at the same time
+name, count, total = await asyncio.gather(
+    teacher_name(teacher_id),           # None -> 404 (checked AFTER gather)
+    teacher_course_count(teacher_id),
+    teacher_total_fees(teacher_id),     # func.coalesce(func.sum(Course.fee), 0)
+)
+
+# routers/bench.py - a sync function, without blocking the event loop
+@router.get("/report")
+async def bench_report() -> dict[str, str]:
+    return await run_in_threadpool(make_report)      # make_report: time.sleep(0.2)
+```
+`tests/test_homework34.py`: the summary (1696 = 299 + 499 + 99 + 799), a teacher without courses
+(`SUM` is `NULL` → `coalesce` → 0), and 20 reports at once in ~0.2 s instead of 4 s.
+`pytest` → **12 passed** (SQLite and PostgreSQL).

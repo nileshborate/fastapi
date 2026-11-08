@@ -1,0 +1,8 @@
+fastapi[standard]
+pydantic-settings
+sqlalchemy[asyncio]>=2.0
+aiosqlite
+asyncpg
+alembic
+pytest
+sqlmodel                     # only for demos/sqlmodel_demo.py (an overview)
