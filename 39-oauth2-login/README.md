@@ -62,3 +62,18 @@ client                                   API
 3. Tests: an inactive user can't log in; `expires_in` is 900 with the default settings.
 
 Answer at the start of Video 40 (Protected Routes and the Current User).
+
+## Homework answer (shown at the start of Video 40)
+```python
+# routers/auth.py - an inactive user gets the SAME 401 as a wrong password
+if user is None or not verify_password(form.password, user.password_hash) \
+        or not user.is_active:
+    raise HTTPException(401, "Incorrect email or password", ...)
+minutes = get_settings().access_token_minutes
+return Token(access_token=create_access_token(user.id), expires_in=minutes * 60)
+
+# schemas.Token
+expires_in: int     # seconds - the client knows when to log in again
+```
+`tests/test_homework39.py` deactivates Asha with `client.portal.call(...)` – that runs the async code
+on the app's own event loop (needed for asyncpg). `pytest` → **11 passed** (SQLite and PostgreSQL).

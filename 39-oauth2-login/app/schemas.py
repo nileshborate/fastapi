@@ -29,3 +29,4 @@ class UserOut(BaseModel):
 class Token(BaseModel):            # the shape OAuth2 clients (and Swagger) expect
     access_token: str
     token_type: str = "bearer"
+    expires_in: int                 # homework (Video 39): seconds until the token expires

@@ -6,6 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.database import get_db
 from app.models import User
 from app.schemas import Token
@@ -22,10 +23,12 @@ async def login(form: Annotated[OAuth2PasswordRequestForm, Depends()], db: DB) -
     user = await db.scalar(select(User).where(User.email == form.username.lower()))
     if user is None:
         verify_password(form.password, DUMMY_HASH)          # same time (Video 37)
-    if user is None or not verify_password(form.password, user.password_hash):
+    if user is None or not verify_password(form.password, user.password_hash) \
+            or not user.is_active:                          # homework (Video 39)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return Token(access_token=create_access_token(user.id))
+    minutes = get_settings().access_token_minutes
+    return Token(access_token=create_access_token(user.id), expires_in=minutes * 60)
