@@ -44,3 +44,11 @@ class SessionOut(BaseModel):
     id: int
     created_at: datetime
     expires_at: datetime
+
+
+class PasswordChange(BaseModel):
+    """homework 41: PATCH /me/password"""
+    model_config = ConfigDict(extra="forbid")
+
+    old_password: str
+    new_password: str = Field(min_length=8, max_length=128)

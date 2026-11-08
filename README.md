@@ -50,6 +50,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 39 | Login with the OAuth2 Password Flow: /token, OAuth2PasswordBearer, Authorize (fresh project) | [39-oauth2-login](39-oauth2-login) |
 | 40 | Protected Routes and the Current User: get_current_user, 401 vs 403, Owner Check (fresh project) | [40-protected-routes](40-protected-routes) |
 | 41 | Refresh Tokens and Logout: Rotation, Reuse Detection, Log Out Everywhere (fresh project) | [41-refresh-tokens](41-refresh-tokens) |
+| 42 | Role-Based Access Control: Roles, Permission Dependencies, the Owner Rule (fresh project) | [42-role-based-access](42-role-based-access) |
 
 ## Requirements
 - Python 3.10 or newer

@@ -18,7 +18,7 @@ python -m demos.client_flow    # access token expired -> 401 -> refresh -> 200
 python -m demos.rotation       # refresh twice, a thief replays token 1 -> everybody out
 python -m demos.logout         # logout: the refresh token dies, the access token NOT (yet)
 fastapi dev app/main.py        # /docs
-pytest                         # 12 passed (SQLite and PostgreSQL)
+pytest                         # 16 passed (SQLite and PostgreSQL) - 12 + 4 homework
 ```
 
 ## Project
@@ -73,3 +73,27 @@ Logout always answers **204** – logging out never fails.
 3. Tests for both.
 
 Answer at the start of Video 42 (Role-Based Access Control).
+
+## Homework answer (shown at the start of Video 42)
+```python
+# routers/me.py - log out ONE device; somebody else's session is a 404
+@router.delete("/sessions/{session_id}", status_code=204)
+async def end_session(session_id: int, user: CurrentUser, db: DB) -> Response:
+    stmt = select(RefreshToken).where(RefreshToken.id == session_id,
+                                      RefreshToken.user_id == user.id,
+                                      RefreshToken.revoked_at.is_(None))
+    ...                                  # None -> 404, else revoked_at = now
+
+# a new password logs out EVERYWHERE - but this device gets a fresh pair
+@router.patch("/password", response_model=TokenPair)
+async def change_password(data: PasswordChange, user: CurrentUser, db: DB) -> TokenPair:
+    if not verify_password(data.old_password, user.password_hash):
+        raise HTTPException(400, "Old password is wrong")
+    user.password_hash = hash_password(data.new_password)
+    await revoke_all(db, user.id)        # every refresh token dies
+    user.token_version += 1              # every access token dies
+    pair, _ = await issue_pair(db, user) # ...but THIS device stays logged in
+    await db.commit()
+    return pair
+```
+`tests/test_homework41.py` – 4 tests. `pytest` → **16 passed** (SQLite and PostgreSQL).
