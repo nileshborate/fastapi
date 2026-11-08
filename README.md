@@ -47,6 +47,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 36 | Security Fundamentals: Authn vs Authz, Hashing vs Encryption, Sessions vs Tokens (fresh project) | [36-security-fundamentals](36-security-fundamentals) |
 | 37 | User Registration and Password Hashing: Argon2, Unique Email (fresh project) | [37-user-registration](37-user-registration) |
 | 38 | JWT Explained: Header, Payload, Signature, Claims, Expiry, PyJWT (fresh project) | [38-jwt-explained](38-jwt-explained) |
+| 39 | Login with the OAuth2 Password Flow: /token, OAuth2PasswordBearer, Authorize (fresh project) | [39-oauth2-login](39-oauth2-login) |
 
 ## Requirements
 - Python 3.10 or newer

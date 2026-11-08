@@ -10,14 +10,15 @@ password_hash = PasswordHash.recommended()          # Argon2
 class User:
     id: int
     email: str
+    name: str                       # homework (Video 38): goes into the token
     role: str
     password_hash: str
 
 
 USERS = {
-    "nilesh@example.com": User(1, "nilesh@example.com", "admin",
+    "nilesh@example.com": User(1, "nilesh@example.com", "Nilesh", "admin",
                                password_hash.hash("admin-pass-123")),
-    "asha@example.com": User(2, "asha@example.com", "student",
+    "asha@example.com": User(2, "asha@example.com", "Asha", "student",
                              password_hash.hash("blue-river-42")),
 }
 

@@ -15,5 +15,6 @@ class TokenOut(BaseModel):
 class MeOut(BaseModel):
     id: int
     email: str
+    name: str                       # homework (Video 38): from the token
     role: str
     token_expires: int              # the exp claim

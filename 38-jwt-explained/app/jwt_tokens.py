@@ -11,7 +11,8 @@ class TokenError(Exception):
     pass
 
 
-def create_access_token(user_id: int, role: str, now: datetime | None = None) -> str:
+def create_access_token(user_id: int, role: str, now: datetime | None = None,
+                        name: str | None = None) -> str:
     settings = get_settings()
     now = now or datetime.now(UTC)
     claims = {
@@ -24,6 +25,8 @@ def create_access_token(user_id: int, role: str, now: datetime | None = None) ->
         "exp": now + timedelta(minutes=settings.access_token_minutes),   # expires
         "jti": uuid.uuid4().hex,    # a unique id for THIS token (Video 41: logout)
     }
+    if name is not None:
+        claims["name"] = name       # homework (Video 38): a claim for display
     return jwt.encode(claims, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 

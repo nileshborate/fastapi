@@ -76,3 +76,20 @@ nobody **changed** it.
 3. Tests: a token signed with RS256 by another key is rejected by `decode_access_token`.
 
 Answer at the start of Video 39 (Login with OAuth2 Password Flow).
+
+## Homework answer (shown at the start of Video 39)
+```python
+# jwt_tokens.py - an optional "name" claim
+if name is not None:
+    claims["name"] = name
+# routers/auth.py - GET /me takes the name straight from the token (no lookup)
+name=claims.get("name", "")
+
+# GET /token/info - DEBUGGING ONLY
+claims = jwt.decode(token, options={"verify_signature": False})
+# no signature, no exp, no iss/aud check: anybody can write any payload.
+# Never use these claims to decide WHO someone is - that's what decode_access_token is for.
+```
+`tests/test_homework38.py`: a fake admin token shows up in `/token/info` (`"verified": false`) but
+`/me` refuses it (401). An RS256 token from another key → "The specified alg value is not allowed"
+(we only accept HS256). `pytest` → **16 passed**.
