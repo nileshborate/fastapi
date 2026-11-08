@@ -17,3 +17,6 @@ class TeacherRepository:
 
     def add(self, teacher: Teacher) -> None:
         self.db.add(teacher)
+
+    async def delete(self, teacher: Teacher) -> None:      # homework (Video 35)
+        await self.db.delete(teacher)

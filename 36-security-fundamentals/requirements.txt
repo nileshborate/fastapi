@@ -1,0 +1,4 @@
+fastapi[standard]
+pydantic-settings
+cryptography                 # only for demos/encryption.py (Fernet)
+pytest

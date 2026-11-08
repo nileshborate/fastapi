@@ -95,3 +95,26 @@ One class can be a table **and** a Pydantic schema (`table=True`). Less code –
 3. Unit tests with the fakes for both rules – no database.
 
 Answer at the start of Video 36 (Security Fundamentals).
+
+## Homework answer (shown at the start of Video 36)
+```python
+# services/courses.py - the rule lives in the SERVICE
+async def change_fee(self, course_id: int, fee: int) -> Course:
+    course = await self.get(course_id)                  # NotFoundError -> 404
+    if fee > course.fee * 1.5:                          # at most +50 % at once
+        raise RuleError("A fee may go up at most 50% at once")
+    course.fee = fee
+    await self.uow.commit()
+    return course
+
+# services/teachers.py
+async def delete(self, teacher_id: int) -> None:
+    teacher = await self.uow.teachers.get(teacher_id)   # None -> NotFoundError
+    if await self.uow.courses.count_for_teacher(teacher_id) > 0:
+        raise RuleError("The teacher still has courses")
+    await self.uow.teachers.delete(teacher)             # NEW repository method
+    await self.uow.commit()
+```
+`PATCH /courses/{course_id}/fee` and `DELETE /teachers/{teacher_id}` (204) – one line each in the
+routers. `FakeTeacherRepository` got `delete` too. `tests/test_homework35.py`: both rules with the
+fakes + one API test. `pytest` → **14 passed** (SQLite and PostgreSQL).

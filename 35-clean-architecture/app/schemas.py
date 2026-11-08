@@ -35,3 +35,10 @@ class CourseOut(BaseModel):
     title: str
     fee: int
     teacher: TeacherOut
+
+
+# ---------------------------------------------------------------- homework answer (Video 35)
+class FeeUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    fee: int = Field(ge=0)

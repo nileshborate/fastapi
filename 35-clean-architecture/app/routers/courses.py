@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 
 from app.models import Course
-from app.schemas import CourseCreate, CourseOut, CourseTransfer
+from app.schemas import CourseCreate, CourseOut, CourseTransfer, FeeUpdate
 from app.services.courses import CourseService
 from app.uow import UnitOfWork, get_uow
 
@@ -36,3 +36,9 @@ async def create_course(data: CourseCreate, service: Service) -> Course:
 @router.post("/{course_id}/transfer", response_model=CourseOut)
 async def transfer_course(course_id: int, data: CourseTransfer, service: Service) -> Course:
     return await service.transfer(course_id, data.teacher_id)
+
+
+# ---------------------------------------------------------------- homework answer (Video 35)
+@router.patch("/{course_id}/fee", response_model=CourseOut)
+async def change_fee(course_id: int, data: FeeUpdate, service: Service) -> Course:
+    return await service.change_fee(course_id, data.fee)

@@ -44,3 +44,12 @@ class CourseService:
         if await self.uow.courses.count_for_teacher(teacher_id) >= self.max_courses:
             raise RuleError(f"A teacher can teach at most {self.max_courses} courses")
         return teacher
+
+    # ------------------------------------------------------------ homework answer (Video 35)
+    async def change_fee(self, course_id: int, fee: int) -> Course:
+        course = await self.get(course_id)
+        if fee > course.fee * 1.5:              # at most +50 % at once
+            raise RuleError("A fee may go up at most 50% at once")
+        course.fee = fee
+        await self.uow.commit()
+        return course

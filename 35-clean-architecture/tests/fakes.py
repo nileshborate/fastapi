@@ -16,6 +16,9 @@ class FakeTeacherRepository:
         teacher.id = len(self.items) + 1
         self.items[teacher.id] = teacher
 
+    async def delete(self, teacher: Teacher) -> None:      # homework (Video 35)
+        del self.items[teacher.id]
+
 
 class FakeCourseRepository:
     def __init__(self) -> None:

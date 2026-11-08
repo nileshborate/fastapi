@@ -25,3 +25,9 @@ async def list_teachers(service: Service) -> list[Teacher]:
 @router.post("", response_model=TeacherOut, status_code=status.HTTP_201_CREATED)
 async def create_teacher(data: TeacherCreate, service: Service) -> Teacher:
     return await service.create(data)
+
+
+# ---------------------------------------------------------------- homework answer (Video 35)
+@router.delete("/{teacher_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_teacher(teacher_id: int, service: Service) -> None:
+    await service.delete(teacher_id)
