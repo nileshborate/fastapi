@@ -32,8 +32,8 @@ def csv_chunks(count: int, lines_per_chunk: int = 1000) -> Iterator[str]:
         yield "".join(batch)
 
 
-async def slow_lessons(count: int, delay: float) -> AsyncIterator[Lesson]:
+async def slow_lessons(count: int, delay: float, after: int = 0) -> AsyncIterator[Lesson]:
     """lessons that arrive one by one - like rows from a slow query"""
-    for n in range(1, count + 1):
+    for n in range(after + 1, after + count + 1):         # homework: after=3 -> lesson 4
         await asyncio.sleep(delay)
         yield Lesson(id=n, title=f"{TITLES[n % len(TITLES)]} {n}", minutes=10 + n % 50)

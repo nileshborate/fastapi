@@ -1,0 +1,5 @@
+fastapi[standard]>=0.135
+redis>=5.0                   # redis-py: the official client, with asyncio support (redis.asyncio)
+pydantic-settings
+pytest
+fakeredis>=2.20              # an in-memory Redis for the tests

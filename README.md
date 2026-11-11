@@ -58,6 +58,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 47 | WebSockets Part 2: Chat Rooms, Broadcasting to a Room, Auth over WebSockets, Testing (fresh project) | [47-websockets-rooms](47-websockets-rooms) |
 | 48 | Async Deep Dive: def vs async def, the Event Loop, the Threadpool, Blocking Calls, run_in_threadpool (fresh project) | [48-async-deep-dive](48-async-deep-dive) |
 | 49 | Streaming Responses and Server-Sent Events: StreamingResponse, FileResponse + Range, JSON Lines, SSE (fresh project) | [49-streaming-sse](49-streaming-sse) |
+| 50 | Caching with Redis, Part 1: the Cache-Aside Pattern, TTL, Invalidation on Update, Redis Down = Still Working (fresh project) | [50-redis-caching](50-redis-caching) |
 
 ## Requirements
 - Python 3.10 or newer

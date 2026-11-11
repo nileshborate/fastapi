@@ -17,7 +17,7 @@ python -m demos.download       # buffered vs streamed: first byte + peak memory 
 python -m demos.sse            # the text/event-stream wire format · Last-Event-ID · chat over POST
 python -m demos.disconnect     # the tab closes after 2 events - the server stops the job
 fastapi dev app/main.py        # http://localhost:8000 - a live progress bar (EventSource)
-pytest                         # 9 passed
+pytest                         # 12 passed
 ```
 
 ## Project
@@ -70,3 +70,23 @@ messages, use WebSockets (Videos 46, 47).
 3. Tests for both.
 
 Answer at the start of Video 50 (Caching with Redis Part 1).
+
+## Homework answer (shown at the start of Video 50)
+```python
+# routers/clock.py - a clock over Server-Sent Events
+@router.get("/clock", response_class=EventSourceResponse)
+async def clock(count: Annotated[int, Query(ge=1, le=60)] = 5,
+                interval: Annotated[float, Query(ge=0, le=1)] = 1.0,
+                ) -> AsyncIterable[ServerSentEvent]:
+    for n in range(1, count + 1):
+        await asyncio.sleep(interval)
+        yield ServerSentEvent(event="tick", id=str(n),
+                              data={"n": n, "time": datetime.now().strftime("%H:%M:%S")})
+    yield ServerSentEvent(event="done", raw_data="[DONE]")
+
+# routers/live.py - resume JSON Lines: ?after=3 starts with lesson 4
+after: Annotated[int, Query(ge=0, le=10_000)] = 0
+async for lesson in slow_lessons(count, delay, after): ...
+```
+`interval` exists only so the tests don't wait a full second per tick (it is still limited: 0..1).
+`tests/test_homework49.py` – 3 tests. `pytest` → **12 passed**.

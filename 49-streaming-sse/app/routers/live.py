@@ -18,9 +18,10 @@ cleanups: list[str] = []                  # the demo + tests look here: did the 
 @router.get("/lessons/stream")
 async def stream_lessons(count: Annotated[int, Query(ge=1, le=100)] = 5,
                          delay: Annotated[float, Query(ge=0, le=2)] = 0.3,
+                         after: Annotated[int, Query(ge=0, le=10_000)] = 0,
                          ) -> AsyncIterable[Lesson]:
     """yield + no response_class = JSON Lines: one JSON object per line"""
-    async for lesson in slow_lessons(count, delay):
+    async for lesson in slow_lessons(count, delay, after):       # homework: resume
         yield lesson
 
 

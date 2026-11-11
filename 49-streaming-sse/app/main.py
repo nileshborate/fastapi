@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
 from app.data import csv_rows
-from app.routers import files, live
+from app.routers import clock, files, live
 
 PAGE = (Path(__file__).parent / "static" / "live.html").read_text()
 
@@ -27,6 +27,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="Course Hub Streams", version="1.0.0", lifespan=lifespan)
 app.include_router(files.router)
 app.include_router(live.router)
+app.include_router(clock.router)              # homework 49
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
