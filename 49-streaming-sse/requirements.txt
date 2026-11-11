@@ -1,0 +1,2 @@
+fastapi[standard]>=0.135     # 0.135: Server-Sent Events (fastapi.sse) and JSON Lines streaming
+pytest

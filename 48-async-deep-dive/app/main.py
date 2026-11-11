@@ -1,6 +1,7 @@
 # Video 48 - Async Deep Dive: def vs async def, the event loop, the threadpool, blocking calls
 import asyncio
 import multiprocessing
+import os
 from collections.abc import AsyncIterator
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import asynccontextmanager
@@ -8,12 +9,15 @@ from contextlib import asynccontextmanager
 from anyio import to_thread
 from fastapi import FastAPI
 
-from app.routers import cpu, io
+from app.routers import cpu, io, reports
 from app.work import count_primes, thread_name
+
+THREADS = int(os.environ.get("THREADS", "40"))          # homework 48: the threadpool size
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    to_thread.current_default_thread_limiter().total_tokens = THREADS   # homework 48
     spawn = multiprocessing.get_context("spawn")          # fresh processes - like on Windows
     with ProcessPoolExecutor(max_workers=2, mp_context=spawn) as pool:
         loop = asyncio.get_running_loop()                 # warm up: start both processes now
@@ -25,6 +29,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="Course Hub - Async Deep Dive", version="1.0.0", lifespan=lifespan)
 app.include_router(io.router)
 app.include_router(cpu.router)
+app.include_router(reports.router)                          # homework 48
 
 
 @app.get("/ping")

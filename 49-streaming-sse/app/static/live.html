@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Course Hub Live Job</title>
+<style>
+  body { margin: 0; font: 16px system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
+  h1 { font-size: 22px; margin: 0 0 16px; color: #22d3ee; }
+  button { padding: 10px 18px; border: 0; border-radius: 8px; background: #22d3ee;
+           color: #0f172a; font-weight: 700; font-size: 16px; cursor: pointer; }
+  .bar { height: 28px; background: #1e293b; border-radius: 14px; overflow: hidden; margin: 18px 0; }
+  .fill { height: 100%; width: 0; background: #22c55e; transition: width .3s; }
+  #log { list-style: none; padding: 12px; margin: 0; min-height: 200px;
+         background: #1e293b; border-radius: 10px; font-family: ui-monospace, monospace; }
+  #log li { padding: 3px 0; }
+  .done { color: #86efac; font-weight: 700; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Export job: progress, live</h1>
+  <button id="start">Start the export</button>
+  <div class="bar"><div class="fill" id="fill"></div></div>
+  <ul id="log"></ul>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function show(text, kind) {
+    const li = document.createElement("li");
+    li.textContent = text;
+    if (kind) li.className = kind;
+    $("log").append(li);
+  }
+
+  $("start").onclick = () => {
+    const source = new EventSource("/jobs/export-1/progress");   // a normal GET request
+    source.addEventListener("progress", (event) => {              // event: progress
+      const p = JSON.parse(event.data);
+      $("fill").style.width = p.percent + "%";
+      show(`id ${event.lastEventId}: step ${p.step} of ${p.of} - ${p.percent}%`);
+    });
+    source.addEventListener("done", () => {                       // event: done
+      show("done - [DONE]", "done");
+      source.close();                // otherwise the browser reconnects automatically
+    });
+  };
+</script>
+</body>
+</html>

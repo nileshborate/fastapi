@@ -16,7 +16,7 @@ python -m demos.frozen         # GET /ping while a slow request runs: 0.00 s - o
 python -m demos.threads        # who runs my endpoint? 40 threads: 40 requests vs 41 vs 80
 python -m demos.cpu            # CPU work: inline vs a thread (GIL) vs a process
 fastapi dev app/main.py
-pytest                         # 7 passed
+pytest                         # 9 passed - 7 + 2 homework
 ```
 
 ## Project
@@ -54,3 +54,23 @@ tests/   test_concurrency                   (httpx.AsyncClient + ASGITransport)
 3. Tests for both.
 
 Answer at the start of Video 49 (Streaming Responses and Server-Sent Events).
+
+## Homework answer (shown at the start of Video 49)
+```python
+# routers/reports.py - a blocking legacy report, called from async def
+@router.get("/{n}")
+async def report(n: Annotated[int, Path(ge=1, le=1000)]) -> dict[str, int | str]:
+    text = await run_in_threadpool(slow_report, 1.0)       # a worker thread - the loop stays free
+    return {"report": n, "status": text}
+
+# main.py - the threadpool size, set in the lifespan
+THREADS = int(os.environ.get("THREADS", "40"))
+
+async def lifespan(app):
+    to_thread.current_default_thread_limiter().total_tokens = THREADS
+    ...
+```
+The limiter belongs to the **event loop**, so the lifespan (which runs on that loop) is the right
+place to change it. `THREADS=10 python -m demos.threads` → 10 requests in one round, the 11th waits.
+The test sets `THREADS` to 10 with `monkeypatch` before it enters the lifespan.
+`tests/test_homework48.py` – 2 tests. `pytest` → **9 passed**.

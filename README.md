@@ -57,6 +57,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 46 | WebSockets Part 1: Real-Time Basics, accept/send/receive, a Connection Manager (fresh project) | [46-websockets-basics](46-websockets-basics) |
 | 47 | WebSockets Part 2: Chat Rooms, Broadcasting to a Room, Auth over WebSockets, Testing (fresh project) | [47-websockets-rooms](47-websockets-rooms) |
 | 48 | Async Deep Dive: def vs async def, the Event Loop, the Threadpool, Blocking Calls, run_in_threadpool (fresh project) | [48-async-deep-dive](48-async-deep-dive) |
+| 49 | Streaming Responses and Server-Sent Events: StreamingResponse, FileResponse + Range, JSON Lines, SSE (fresh project) | [49-streaming-sse](49-streaming-sse) |
 
 ## Requirements
 - Python 3.10 or newer
