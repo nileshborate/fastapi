@@ -54,6 +54,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 43 | OAuth2 Scopes: Security(), SecurityScopes, Scopes in the Token (fresh project) | [43-oauth2-scopes](43-oauth2-scopes) |
 | 44 | Email Verification and Password Reset: One-Time Links, No User Enumeration (fresh project) | [44-email-verification](44-email-verification) |
 | 45 | API Security Hardening: Rate Limits, Input Limits, Security Headers, OWASP API Top 10 (fresh project) | [45-security-hardening](45-security-hardening) |
+| 46 | WebSockets Part 1: Real-Time Basics, accept/send/receive, a Connection Manager (fresh project) | [46-websockets-basics](46-websockets-basics) |
 
 ## Requirements
 - Python 3.10 or newer

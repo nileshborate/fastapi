@@ -17,7 +17,10 @@ router = APIRouter(tags=["Auth"])
 
 @router.post("/users", response_model=UserOut, status_code=status.HTTP_201_CREATED,
              dependencies=[Depends(limit_ip)])
-async def register(data: UserCreate, db: DB) -> User:
+async def register(data: UserCreate, request: Request, db: DB) -> User:
+    # homework 45: at most 3 new accounts per hour for one email domain - before Argon2
+    domain = data.email.rsplit("@", 1)[1]
+    request.app.state.domain_limiter.check(f"domain:{domain}")
     user = User(email=data.email, full_name=data.full_name,
                 password_hash=hash_password(data.password))
     db.add(user)

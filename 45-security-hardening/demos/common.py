@@ -15,7 +15,7 @@ async def clean() -> None:
         await db.execute(delete(Course))
         await db.execute(delete(User))
         await db.commit()
-    for limiter in ("login_limiter", "write_limiter", "ip_limiter"):
+    for limiter in ("login_limiter", "write_limiter", "ip_limiter", "domain_limiter"):
         getattr(default_app.state, limiter).reset()
 
 

@@ -1,0 +1,3 @@
+fastapi[standard]            # includes uvicorn[standard] - and with it the websockets library
+websockets                   # the demos use it as a real WebSocket client
+pytest

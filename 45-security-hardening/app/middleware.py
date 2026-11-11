@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 TOO_LARGE = b'{"detail":"Request body too large"}'
+DOCS_PATHS = ("/docs", "/redoc")                    # homework 45: no CSP for these pages
 
 
 class BodySizeLimit:
@@ -64,15 +65,21 @@ class SecurityHeaders:
         if hsts:                                              # production only - HTTPS!
             self.headers.append((b"strict-transport-security",
                                  b"max-age=31536000; includeSubDomains"))
+        # homework 45: no scripts, no styles, no frames - JSON needs none of them
+        self.csp = (b"content-security-policy", b"default-src 'none'; frame-ancestors 'none'")
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
 
+        extra = list(self.headers)
+        if not scope["path"].startswith(DOCS_PATHS):          # Swagger needs its scripts
+            extra.append(self.csp)
+
         async def send_with_headers(message: Message) -> None:
             if message["type"] == "http.response.start":
-                message["headers"] = list(message.get("headers", [])) + self.headers
+                message["headers"] = list(message.get("headers", [])) + extra
             await send(message)
 
         await self.app(scope, receive, send_with_headers)

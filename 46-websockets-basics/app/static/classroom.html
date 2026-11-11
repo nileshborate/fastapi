@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Course Hub Live</title>
+<style>
+  body { margin: 0; font: 16px system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+  main { max-width: 640px; margin: 0 auto; padding: 20px 16px; }
+  h1 { font-size: 22px; margin: 0 0 14px; color: #22d3ee; }
+  .row { display: flex; gap: 8px; margin-bottom: 12px; }
+  input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #334155;
+          background: #1e293b; color: #e2e8f0; font-size: 16px; }
+  button { padding: 10px 16px; border: 0; border-radius: 8px; background: #22d3ee;
+           color: #0f172a; font-weight: 700; font-size: 16px; cursor: pointer; }
+  #log { list-style: none; padding: 12px; margin: 0 0 12px; min-height: 260px;
+         background: #1e293b; border-radius: 10px; }
+  #log li { padding: 4px 0; }
+  .system { color: #94a3b8; font-style: italic; }
+  .announcement { color: #facc15; font-weight: 700; }
+  .error { color: #f87171; }
+  #online { color: #86efac; font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Course Hub Live</h1>
+  <div class="row">
+    <input id="name" placeholder="Your name" value="Asha">
+    <button id="join">Join</button>
+  </div>
+  <ul id="log"></ul>
+  <div class="row">
+    <input id="text" placeholder="Message" disabled>
+    <button id="send" disabled>Send</button>
+  </div>
+  <div id="online"></div>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let ws = null;
+
+  function show(text, kind) {
+    const li = document.createElement("li");
+    li.textContent = text;
+    li.className = kind;
+    $("log").append(li);
+  }
+
+  $("join").onclick = () => {
+    ws = new WebSocket(`ws://${location.host}/ws/class/${$("name").value}`);
+    ws.onopen = () => { $("text").disabled = $("send").disabled = false; };
+    ws.onmessage = (event) => {                       // the SERVER speaks - any time
+      const m = JSON.parse(event.data);
+      if (m.type === "chat") show(`${m.from}: ${m.text}`, "chat");
+      if (m.type === "announcement") show(`Teacher: ${m.text}`, "announcement");
+      if (m.type === "error") show(m.detail, "error");
+      if (m.type === "system") {
+        show(m.text, "system");
+        $("online").textContent = "Online: " + m.online.join(", ");
+      }
+    };
+    ws.onclose = (event) => show(`connection closed (code ${event.code})`, "error");
+  };
+
+  $("send").onclick = () => {
+    ws.send(JSON.stringify({ text: $("text").value }));
+    $("text").value = "";
+  };
+</script>
+</body>
+</html>

@@ -18,7 +18,7 @@ python -m demos.brute_force    # 5 tries per minute - then 429, even with the ri
 python -m demos.limits         # 1 MB body: 413 · long strings, big numbers, limit=1000000: 422
 python -m demos.headers        # development vs production: headers, HSTS, /docs, Host, CORS, 500
 fastapi dev app/main.py
-pytest                         # 18 passed (SQLite and PostgreSQL)
+pytest                         # 21 passed (SQLite and PostgreSQL) - 18 + 3 homework
 ```
 
 ## Project
@@ -81,3 +81,23 @@ tests/   test_ratelimit · test_limits · test_hardening
 3. Tests for both.
 
 Answer at the start of Video 46 (WebSockets Part 1).
+
+## Homework answer (shown at the start of Video 46)
+```python
+# routers/auth.py - a 4th limiter on app.state: 3 new accounts per hour per email DOMAIN
+async def register(data: UserCreate, request: Request, db: DB) -> User:
+    domain = data.email.rsplit("@", 1)[1]                 # the email is already lower case
+    request.app.state.domain_limiter.check(f"domain:{domain}")   # before Argon2
+    ...
+
+# middleware.py - SecurityHeaders: a Content-Security-Policy, but not for Swagger / ReDoc
+DOCS_PATHS = ("/docs", "/redoc")
+self.csp = (b"content-security-policy", b"default-src 'none'; frame-ancestors 'none'")
+extra = list(self.headers)
+if not scope["path"].startswith(DOCS_PATHS):
+    extra.append(self.csp)
+```
+`default-src 'none'`: a JSON answer needs no scripts, styles or images – if one is ever shown as a
+page, the browser runs nothing. `frame-ancestors 'none'` is the modern `X-Frame-Options: DENY`.
+In a real app, limit only unknown or throw-away domains – not gmail.com for everybody.
+`tests/test_homework45.py` – 3 tests. `pytest` → **21 passed** (SQLite and PostgreSQL).

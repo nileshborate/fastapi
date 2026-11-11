@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     max_body_bytes: int = 16 * 1024            # 16 KB - more than any of our JSON bodies
     login_limit: int = 5                       # 5 login tries ...
     login_window_seconds: int = 60             # ... per minute, per IP and email
+    domain_limit: int = 3                      # homework 45: 3 new accounts ...
+    domain_window_seconds: int = 3600          # ... per hour, per email domain
 
     @property
     def is_production(self) -> bool:

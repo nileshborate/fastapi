@@ -35,6 +35,8 @@ def create_app(settings: Settings) -> FastAPI:
     app.state.login_limiter = RateLimiter(settings.login_limit, settings.login_window_seconds)
     app.state.write_limiter = RateLimiter(10, 60)                  # 10 writes / minute
     app.state.ip_limiter = RateLimiter(20, 60)                     # 20 / minute / IP
+    app.state.domain_limiter = RateLimiter(settings.domain_limit,  # homework 45
+                                           settings.domain_window_seconds)
 
     # the LAST one added runs FIRST - so this list goes from the inside to the outside
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,

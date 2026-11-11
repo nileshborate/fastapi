@@ -22,7 +22,7 @@ def client() -> Iterator[TestClient]:
     cfg = Config(str(ALEMBIC_INI))
     command.downgrade(cfg, "base")
     command.upgrade(cfg, "head")
-    for limiter in ("login_limiter", "write_limiter", "ip_limiter"):
+    for limiter in ("login_limiter", "write_limiter", "ip_limiter", "domain_limiter"):
         getattr(app.state, limiter).reset()              # every test starts with 0 hits
     with TestClient(app) as test_client:
         yield test_client
