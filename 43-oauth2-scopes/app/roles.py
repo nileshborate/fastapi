@@ -13,6 +13,7 @@ SCOPES: dict[str, str] = {
     "me": "Read your own profile",
     "courses:read": "Read courses",
     "courses:write": "Create courses",
+    "courses:delete": "Delete courses",                 # homework 43 - admins only
     "users:manage": "List users and change their roles",
 }
 
@@ -20,7 +21,7 @@ SCOPES: dict[str, str] = {
 ROLE_SCOPES: dict[Role, set[str]] = {
     Role.STUDENT: {"me", "courses:read"},
     Role.TEACHER: {"me", "courses:read", "courses:write"},
-    Role.ADMIN: set(SCOPES),
+    Role.ADMIN: set(SCOPES),                          # so admins get courses:delete too
 }
 
 

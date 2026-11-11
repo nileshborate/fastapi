@@ -1,8 +1,8 @@
 # Reading needs "courses:read", creating needs "courses:write"
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import select
 
-from app.deps import DB, CourseReader, CourseWriter
+from app.deps import DB, CourseDeleter, CourseReader, CourseWriter
 from app.models import Course
 from app.schemas import CourseIn, CourseOut
 
@@ -21,3 +21,14 @@ async def create_course(data: CourseIn, user: CourseWriter, db: DB) -> Course:
     await db.commit()
     await db.refresh(course)
     return course
+
+
+@router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_course(course_id: int, user: CourseDeleter, db: DB) -> Response:
+    # homework 43: only a token with "courses:delete" - and only admins can get that scope
+    course = await db.get(Course, course_id)
+    if course is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    await db.delete(course)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

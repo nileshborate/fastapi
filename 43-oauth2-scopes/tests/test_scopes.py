@@ -56,6 +56,7 @@ def test_security_scopes_stack_up() -> None:
 def test_openapi_knows_the_scopes(client: TestClient) -> None:
     schema = client.get("/openapi.json").json()
     flow = schema["components"]["securitySchemes"]["OAuth2PasswordBearer"]["flows"]["password"]
-    assert set(flow["scopes"]) == {"me", "courses:read", "courses:write", "users:manage"}
+    assert set(flow["scopes"]) == {"me", "courses:read", "courses:write", "courses:delete",
+                                   "users:manage"}
     post = schema["paths"]["/courses"]["post"]["security"]
     assert post == [{"OAuth2PasswordBearer": ["courses:write"]}]

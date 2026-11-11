@@ -20,7 +20,7 @@ python -m demos.downgrade      # the token says courses:write - the role says no
 python -m demos.stacking       # how SecurityScopes collects scopes (and caches)
 fastapi dev app/main.py        # /docs -> Authorize -> tick the scopes you want
 python -m app.make_admin you@example.com
-pytest                         # 15 passed (SQLite and PostgreSQL)
+pytest                         # 18 passed (SQLite and PostgreSQL) - 15 + 3 homework
 ```
 
 ## Project
@@ -75,3 +75,26 @@ the user's role – a demoted teacher's old token stops working at once.
 3. Tests for both.
 
 Answer at the start of Video 44 (Email Verification and Password Reset).
+
+## Homework answer (shown at the start of Video 44)
+```python
+# roles.py - a new scope; only the admin's set (set(SCOPES)) contains it
+"courses:delete": "Delete courses",
+
+# deps.py
+async def token_claims(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
+    return decode_access_token(token)          # the SAME header that get_current_user checked
+CourseDeleter = Annotated[User, Security(get_current_user, scopes=["courses:delete"])]
+Claims = Annotated[dict, Depends(token_claims)]
+
+# routers/courses.py
+@router.delete("/{course_id}", status_code=204)
+async def delete_course(course_id: int, user: CourseDeleter, db: DB) -> Response: ...
+
+# routers/auth.py - Me checks the token first, then we show its claims
+@router.get("/me/token")
+async def my_token(user: Me, claims: Claims) -> dict:
+    ...   # {"user_id", "scopes", "expires_at", "expires_in"}
+```
+A teacher can't even **get** `courses:delete` (asked – not granted); Asha's read-only token gets 403.
+`tests/test_homework43.py` – 3 tests. `pytest` → **18 passed** (SQLite and PostgreSQL).

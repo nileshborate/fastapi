@@ -52,6 +52,13 @@ def scope_error(scope: str, security_scopes: SecurityScopes, why: str) -> HTTPEx
                          headers={"WWW-Authenticate": header})
 
 
+async def token_claims(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
+    """homework 43: the decoded claims of THIS request's token (after get_current_user)"""
+    return decode_access_token(token)
+
+
 Me = Annotated[User, Security(get_current_user, scopes=["me"])]
 CourseReader = Annotated[User, Security(get_current_user, scopes=["courses:read"])]
 CourseWriter = Annotated[User, Security(get_current_user, scopes=["courses:write"])]
+CourseDeleter = Annotated[User, Security(get_current_user, scopes=["courses:delete"])]
+Claims = Annotated[dict, Depends(token_claims)]

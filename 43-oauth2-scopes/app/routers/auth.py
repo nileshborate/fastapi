@@ -1,4 +1,5 @@
 # Register, and log in WITH scopes: the client asks, the server decides
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -6,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.deps import DB, Me
+from app.deps import DB, Claims, Me
 from app.models import User
 from app.roles import SCOPES, grant_scopes
 from app.schemas import Token, UserCreate, UserOut
@@ -52,3 +53,12 @@ async def login(form: Annotated[OAuth2PasswordRequestForm, Depends()], db: DB) -
 @router.get("/me", response_model=UserOut)
 async def read_me(user: Me) -> User:
     return user
+
+
+@router.get("/me/token")
+async def my_token(user: Me, claims: Claims) -> dict:
+    # homework 43: Me checks the token first - then we just show its claims
+    expires = datetime.fromtimestamp(claims["exp"], UTC)
+    seconds_left = int((expires - datetime.now(UTC)).total_seconds())
+    return {"user_id": user.id, "scopes": claims.get("scope", "").split(),
+            "expires_at": expires.isoformat(), "expires_in": seconds_left}

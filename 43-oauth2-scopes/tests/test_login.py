@@ -7,7 +7,7 @@ from tests.conftest import login
 
 
 @pytest.mark.parametrize(("email", "asked", "granted"), [
-    ("asha@example.com", None, "courses:read courses:write me users:manage"),
+    ("asha@example.com", None, "courses:delete courses:read courses:write me users:manage"),
     ("asha@example.com", "courses:read", "courses:read"),
     ("ravi@example.com", None, "courses:read courses:write me"),
     ("meera@example.com", None, "courses:read me"),

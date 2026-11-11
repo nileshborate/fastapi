@@ -52,6 +52,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 41 | Refresh Tokens and Logout: Rotation, Reuse Detection, Log Out Everywhere (fresh project) | [41-refresh-tokens](41-refresh-tokens) |
 | 42 | Role-Based Access Control: Roles, Permission Dependencies, the Owner Rule (fresh project) | [42-role-based-access](42-role-based-access) |
 | 43 | OAuth2 Scopes: Security(), SecurityScopes, Scopes in the Token (fresh project) | [43-oauth2-scopes](43-oauth2-scopes) |
+| 44 | Email Verification and Password Reset: One-Time Links, No User Enumeration (fresh project) | [44-email-verification](44-email-verification) |
 
 ## Requirements
 - Python 3.10 or newer
