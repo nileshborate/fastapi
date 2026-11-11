@@ -51,6 +51,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 40 | Protected Routes and the Current User: get_current_user, 401 vs 403, Owner Check (fresh project) | [40-protected-routes](40-protected-routes) |
 | 41 | Refresh Tokens and Logout: Rotation, Reuse Detection, Log Out Everywhere (fresh project) | [41-refresh-tokens](41-refresh-tokens) |
 | 42 | Role-Based Access Control: Roles, Permission Dependencies, the Owner Rule (fresh project) | [42-role-based-access](42-role-based-access) |
+| 43 | OAuth2 Scopes: Security(), SecurityScopes, Scopes in the Token (fresh project) | [43-oauth2-scopes](43-oauth2-scopes) |
 
 ## Requirements
 - Python 3.10 or newer

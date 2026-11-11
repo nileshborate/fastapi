@@ -5,7 +5,7 @@ from sqlalchemy import select
 from app.deps import DB, CurrentUser, require_roles
 from app.models import User
 from app.roles import Role
-from app.schemas import RoleUpdate, UserOut
+from app.schemas import ActiveUpdate, RoleUpdate, UserOut
 
 router = APIRouter(prefix="/admin", tags=["Admin"],
                    dependencies=[Depends(require_roles(Role.ADMIN))])
@@ -27,6 +27,21 @@ async def change_role(user_id: int, data: RoleUpdate, admin: CurrentUser, db: DB
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     user.role = data.role
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@router.patch("/users/{user_id}/active", response_model=UserOut)
+async def set_active(user_id: int, data: ActiveUpdate, admin: CurrentUser, db: DB) -> User:
+    # homework 42: block (or unblock) a user. Blocked users get 401 at login, 403 with a token
+    if user_id == admin.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="You can't block yourself")
+    user = await db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user.is_active = data.is_active
     await db.commit()
     await db.refresh(user)
     return user

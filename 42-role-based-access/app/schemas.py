@@ -23,12 +23,20 @@ class UserOut(BaseModel):
     email: str
     full_name: str
     role: Role
+    is_active: bool
 
 
 class RoleUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     role: Role                                       # only admin, teacher or student
+
+
+class ActiveUpdate(BaseModel):
+    """homework 42: PATCH /admin/users/{id}/active"""
+    model_config = ConfigDict(extra="forbid")
+
+    is_active: bool
 
 
 class Token(BaseModel):

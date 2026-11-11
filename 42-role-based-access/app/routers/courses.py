@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.deps import DB, require_permission
+from app.deps import DB, CurrentUser, require_permission
 from app.models import Course, Enrollment, User
 from app.roles import Role
-from app.schemas import CourseIn, CourseOut, CourseUpdate
+from app.schemas import CourseIn, CourseOut, CourseUpdate, UserOut
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
 
@@ -59,6 +59,18 @@ async def delete_course(course_id: int, db: DB) -> Response:
     await db.delete(course)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/{course_id}/students", response_model=list[UserOut])
+async def course_students(course_id: int, user: CurrentUser, db: DB) -> list[User]:
+    # homework 42: the course's OWN teacher or an admin - the same owner rule as PATCH
+    course = await get_course(db, course_id)
+    if user.role != Role.ADMIN and course.teacher_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Only the course's teacher or an admin can see this")
+    stmt = (select(User).join(Enrollment, Enrollment.user_id == User.id)
+            .where(Enrollment.course_id == course_id).order_by(User.id))
+    return list(await db.scalars(stmt))
 
 
 @router.post("/{course_id}/enroll", status_code=status.HTTP_201_CREATED)

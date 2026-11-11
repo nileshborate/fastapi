@@ -19,7 +19,7 @@ python -m demos.promote                    # the SAME token - a new role works a
 python -m demos.factory                    # require_roles(...) builds a new function each time
 fastapi dev app/main.py                    # /docs - register, then:
 python -m app.make_admin you@example.com   # the first admin: a script, never the API
-pytest                                     # 17 passed (SQLite and PostgreSQL)
+pytest                                     # 20 passed (SQLite and PostgreSQL) - 17 + 3 homework
 ```
 
 ## Project
@@ -67,3 +67,25 @@ tests/   test_matrix (8 x 4) · test_roles · test_overrides
 3. Tests for both.
 
 Answer at the start of Video 43 (OAuth2 Scopes).
+
+## Homework answer (shown at the start of Video 43)
+```python
+# routers/courses.py - the students of a course: its OWN teacher or an admin
+@router.get("/{course_id}/students", response_model=list[UserOut])
+async def course_students(course_id: int, user: CurrentUser, db: DB) -> list[User]:
+    course = await get_course(db, course_id)                    # 404 first
+    if user.role != Role.ADMIN and course.teacher_id != user.id:
+        raise HTTPException(403, "Only the course's teacher or an admin can see this")
+    stmt = (select(User).join(Enrollment, Enrollment.user_id == User.id)
+            .where(Enrollment.course_id == course_id).order_by(User.id))
+    return list(await db.scalars(stmt))
+
+# routers/admin.py - the router already checks "admin"; you can't block yourself
+@router.patch("/users/{user_id}/active", response_model=UserOut)
+async def set_active(user_id: int, data: ActiveUpdate, admin: CurrentUser, db: DB) -> User:
+    if user_id == admin.id:
+        raise HTTPException(400, "You can't block yourself")
+    ...                                   # 404 · user.is_active = data.is_active · commit
+```
+A blocked user's old token gets **403 Inactive user**, a new login **401**.
+`tests/test_homework42.py` – 3 tests. `pytest` → **20 passed** (SQLite and PostgreSQL).
