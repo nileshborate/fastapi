@@ -14,6 +14,7 @@ from app.users import PASSWORD  # noqa: E402
 @pytest.fixture
 def client() -> Iterator[TestClient]:
     rooms.rooms.clear()
+    rooms.history.clear()
     with TestClient(app) as test_client:
         yield test_client
 

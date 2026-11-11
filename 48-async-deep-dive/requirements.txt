@@ -1,0 +1,2 @@
+fastapi[standard]            # uvicorn + httpx (the demos' async client)
+pytest

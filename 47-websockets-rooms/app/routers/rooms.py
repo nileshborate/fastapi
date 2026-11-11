@@ -22,6 +22,8 @@ async def room_chat(websocket: WebSocket, room: Room, session: Session) -> None:
     if room not in user.rooms:                             # authorization - still before accept
         raise WebSocketException(code=POLICY, reason="not enrolled in this room")
     await websocket.accept()
+    if history := rooms.recent(room):                      # homework 47: what you missed
+        await websocket.send_json({"type": "history", "room": room, "messages": history})
     rooms.join(room, websocket, user.username)
     await rooms.broadcast(room, {"type": "system", "room": room,
                                  "text": f"{user.username} joined",
@@ -36,8 +38,9 @@ async def room_chat(websocket: WebSocket, room: Room, session: Session) -> None:
             except ValidationError:
                 await websocket.send_json({"type": "error", "detail": 'send {"text": "..."}'})
                 continue
-            await rooms.broadcast(room, {"type": "chat", "room": room, "from": user.username,
-                                         "text": message.text})
+            chat = {"type": "chat", "room": room, "from": user.username, "text": message.text}
+            rooms.remember(room, chat)
+            await rooms.broadcast(room, chat)
     except TimeoutError:                                   # the token expired: log in again
         await websocket.close(code=POLICY, reason="token expired")
     except WebSocketDisconnect:
@@ -59,6 +62,19 @@ async def members(room: Room, user: CurrentUser) -> dict[str, str | list[str]]:
 @router.post("/rooms/{room}/announcements", response_model=Delivered,
              status_code=status.HTTP_202_ACCEPTED)
 async def announce(room: Room, data: Announcement, teacher: Teacher) -> Delivered:
-    await rooms.broadcast(room, {"type": "announcement", "room": room,
-                                 "from": teacher.username, "text": data.text})
+    announcement = {"type": "announcement", "room": room, "from": teacher.username,
+                    "text": data.text}
+    rooms.remember(room, announcement)
+    await rooms.broadcast(room, announcement)
     return Delivered(room=room, delivered_to=rooms.count(room))
+
+
+@router.delete("/rooms/{room}/members/{username}")
+async def remove_member(room: Room, username: str, teacher: Teacher) -> dict[str, str | int]:
+    """homework 47: close every connection of this user in this room"""
+    connections = rooms.connections_of(room, username)
+    if not connections:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not in this room")
+    for websocket in connections:
+        await websocket.close(code=POLICY, reason="removed by teacher")
+    return {"room": room, "removed": username, "connections": len(connections)}

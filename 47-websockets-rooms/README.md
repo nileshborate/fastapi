@@ -16,7 +16,7 @@ cp .env.example .env
 python -m demos.auth           # no token / bad token / not enrolled: 403 · a 3-second token: closed 1008
 python -m demos.rooms          # python and sql rooms - a message only reaches its own room
 fastapi dev app/main.py        # /docs: POST /token, members, announcements
-pytest                         # 11 passed
+pytest                         # 15 passed - 11 + 4 homework
 ```
 Users (all with the password `blue-river-42`): **asha** (python, sql) · **ravi** (python) ·
 **meera** (sql) · **nilesh** (teacher: python, sql, fastapi).
@@ -66,3 +66,31 @@ after accept:   the token expires                  -> close(1008, "token expired
 3. Tests for both.
 
 Answer at the start of Video 48 (Async Deep Dive: def vs async def).
+
+## Homework answer (shown at the start of Video 48)
+```python
+# rooms.py - a deque per room: append() drops the oldest message once there are 20
+self.history: dict[str, deque[dict]] = {}
+
+def remember(self, room, message):
+    self.history.setdefault(room, deque(maxlen=HISTORY)).append(message)
+
+# routers/rooms.py - right after accept: what you missed (only if there is something)
+if history := rooms.recent(room):
+    await websocket.send_json({"type": "history", "room": room, "messages": history})
+
+# chats and announcements: rooms.remember(room, message) + rooms.broadcast(room, message)
+
+@router.delete("/rooms/{room}/members/{username}")
+async def remove_member(room: Room, username: str, teacher: Teacher):
+    connections = rooms.connections_of(room, username)
+    if not connections:
+        raise HTTPException(404, "Not in this room")
+    for websocket in connections:                 # ALL tabs of this user in this room
+        await websocket.close(code=POLICY, reason="removed by teacher")
+    return {"room": room, "removed": username, "connections": len(connections)}
+```
+The server closes the connection from **another task** (the HTTP request). The client answers the
+close, the room's loop gets `WebSocketDisconnect`, and `finally` broadcasts "ravi left". With the
+**TestClient**, the client answers the close when its `with` block ends.
+`tests/test_homework47.py` – 4 tests. `pytest` → **15 passed**.
