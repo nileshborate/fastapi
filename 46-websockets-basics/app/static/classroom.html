@@ -19,6 +19,7 @@
   .system { color: #94a3b8; font-style: italic; }
   .announcement { color: #facc15; font-weight: 700; }
   .error { color: #f87171; }
+  .private { color: #c4b5fd; }
   #online { color: #86efac; font-size: 14px; }
 </style>
 </head>
@@ -55,12 +56,13 @@
       if (m.type === "chat") show(`${m.from}: ${m.text}`, "chat");
       if (m.type === "announcement") show(`Teacher: ${m.text}`, "announcement");
       if (m.type === "error") show(m.detail, "error");
+      if (m.type === "private") show(`${m.from} -> ${m.to} (private): ${m.text}`, "private");
       if (m.type === "system") {
         show(m.text, "system");
         $("online").textContent = "Online: " + m.online.join(", ");
       }
     };
-    ws.onclose = (event) => show(`connection closed (code ${event.code})`, "error");
+    ws.onclose = (event) => show(`connection closed (code ${event.code}) ${event.reason}`, "error");
   };
 
   $("send").onclick = () => {

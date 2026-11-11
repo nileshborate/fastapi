@@ -16,7 +16,7 @@ python -m demos.polling        # the old way: ask again and again - 6 requests f
 python -m demos.echo           # 101 Switching Protocols - then many messages on one connection
 python -m demos.classroom      # two students, a chat, an error, an announcement, a goodbye
 fastapi dev app/main.py        # open http://localhost:8000 in TWO browser windows
-pytest                         # 8 passed
+pytest                         # 11 passed - 8 + 3 homework
 ```
 
 ## Project
@@ -61,3 +61,32 @@ except WebSocketDisconnect:       the client closed the tab (code 1000, 1001, ..
 3. Tests for both.
 
 Answer at the start of Video 47 (WebSockets Part 2).
+
+## Homework answer (shown at the start of Video 47)
+```python
+# schemas.py - an optional receiver
+to: str | None = Field(default=None, max_length=20)
+
+# routers/classroom.py
+if name in manager.names:                        # no two Ashas
+    await websocket.accept()                     # accept FIRST - then the client sees code + reason
+    await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="name taken")
+    return
+...
+if message.to:                                   # a private message
+    await send_private(websocket, name, message.to, message.text)
+    continue
+
+async def send_private(websocket, sender, to, text):
+    target = manager.find(to)                    # manager.find(name) -> WebSocket | None
+    if target is None:
+        await websocket.send_json({"type": "error", "detail": f"{to} is not online"})
+        return
+    message = {"type": "private", "from": sender, "to": to, "text": text}
+    await target.send_json(message)              # only Ravi ...
+    if target is not websocket:
+        await websocket.send_json(message)       # ... and a copy for the sender
+```
+Closed **before** `accept` = the handshake fails with HTTP 403 and no reason. Closed **after** `accept` =
+the browser's `onclose` gets `code 1008` and `reason "name taken"`.
+`tests/test_homework46.py` – 3 tests. `pytest` → **11 passed**.

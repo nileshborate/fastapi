@@ -1,0 +1,6 @@
+fastapi[standard]            # uvicorn[standard] (with websockets) + python-multipart (the login form)
+pydantic-settings
+pyjwt
+pwdlib[argon2]
+websockets                   # the demos use it as a real WebSocket client
+pytest

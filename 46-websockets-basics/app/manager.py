@@ -17,6 +17,9 @@ class ConnectionManager:
     def names(self) -> list[str]:
         return sorted(self.active.values())
 
+    def find(self, name: str) -> WebSocket | None:          # homework 46
+        return next((ws for ws, n in self.active.items() if n == name), None)
+
     async def broadcast(self, message: dict) -> None:
         for websocket in list(self.active):             # a copy: the dict may change
             try:
