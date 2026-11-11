@@ -22,6 +22,13 @@ def reset_email(to: str, token: str) -> Email:
                       "Not you? Ignore this email - nothing changes.")
 
 
+def changed_email(to: str) -> Email:
+    """homework 44: after every reset and every change - if it wasn't you, now you know"""
+    return Email(to=to, subject="Your password was changed",
+                 body="Your Course Hub password was just changed.\n"
+                      "Not you? Reset it right away with \"forgot password\".")
+
+
 def verify_lifetime() -> timedelta:
     return timedelta(hours=get_settings().verify_link_hours)
 

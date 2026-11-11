@@ -7,10 +7,25 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.deps import DB, CurrentUser, MailerDep
-from app.emails import reset_email, reset_lifetime, verify_email, verify_lifetime
-from app.links import issue_link, use_link
+from app.emails import (
+    changed_email,
+    reset_email,
+    reset_lifetime,
+    verify_email,
+    verify_lifetime,
+)
+from app.links import issue_link, kill_links, use_link
 from app.models import User
-from app.schemas import EmailIn, LinkIn, Message, ResetIn, Token, UserCreate, UserOut
+from app.schemas import (
+    EmailIn,
+    LinkIn,
+    Message,
+    PasswordChange,
+    ResetIn,
+    Token,
+    UserCreate,
+    UserOut,
+)
 from app.security import DUMMY_HASH, create_access_token, hash_password, verify_password
 
 router = APIRouter(tags=["Auth"])
@@ -86,12 +101,28 @@ async def forgot_password(data: EmailIn, db: DB, mailer: MailerDep,
 
 
 @router.post("/password/reset", response_model=Message)
-async def reset_password(data: ResetIn, db: DB) -> Message:
+async def reset_password(data: ResetIn, db: DB, mailer: MailerDep,
+                         tasks: BackgroundTasks) -> Message:
     user = await use_link(db, data.token, "reset")
     user.password_hash = hash_password(data.new_password)
     user.is_verified = True                             # the link proved the inbox, too
     await db.commit()
+    tasks.add_task(mailer.send, changed_email(user.email))      # homework 44
     return Message(detail="Password changed - log in with the new password")
+
+
+@router.post("/me/password", response_model=Message)
+async def change_password(data: PasswordChange, user: CurrentUser, db: DB, mailer: MailerDep,
+                          tasks: BackgroundTasks) -> Message:
+    # homework 44: logged in - but the OLD password must be right (a borrowed laptop?)
+    if not verify_password(data.old_password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Old password is wrong")
+    user.password_hash = hash_password(data.new_password)
+    await kill_links(db, user.id, "reset")              # an old reset link can't undo it
+    await db.commit()
+    tasks.add_task(mailer.send, changed_email(user.email))
+    return Message(detail="Password changed")
 
 
 @router.get("/me", response_model=UserOut)

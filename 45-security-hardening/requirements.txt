@@ -1,0 +1,9 @@
+fastapi[standard]            # includes python-multipart (the login form)
+pydantic-settings
+sqlalchemy[asyncio]>=2.0
+aiosqlite
+asyncpg
+alembic
+pwdlib[argon2]
+pyjwt
+pytest

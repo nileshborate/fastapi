@@ -44,5 +44,13 @@ class ResetIn(LinkIn):
     new_password: str = Field(min_length=8, max_length=128)
 
 
+class PasswordChange(BaseModel):
+    """homework 44: POST /me/password"""
+    model_config = ConfigDict(extra="forbid")
+
+    old_password: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class Message(BaseModel):
     detail: str

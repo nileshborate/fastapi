@@ -53,6 +53,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 42 | Role-Based Access Control: Roles, Permission Dependencies, the Owner Rule (fresh project) | [42-role-based-access](42-role-based-access) |
 | 43 | OAuth2 Scopes: Security(), SecurityScopes, Scopes in the Token (fresh project) | [43-oauth2-scopes](43-oauth2-scopes) |
 | 44 | Email Verification and Password Reset: One-Time Links, No User Enumeration (fresh project) | [44-email-verification](44-email-verification) |
+| 45 | API Security Hardening: Rate Limits, Input Limits, Security Headers, OWASP API Top 10 (fresh project) | [45-security-hardening](45-security-hardening) |
 
 ## Requirements
 - Python 3.10 or newer

@@ -31,6 +31,14 @@ async def issue_link(db: AsyncSession, user: User, purpose: str, lifetime: timed
     return raw                                                 # goes into the email - ONLY
 
 
+async def kill_links(db: AsyncSession, user_id: int, purpose: str) -> None:
+    """homework 44: every unused link of this purpose dies (e.g. after a password change)"""
+    await db.execute(update(LinkToken)
+                     .where(LinkToken.user_id == user_id, LinkToken.purpose == purpose,
+                            LinkToken.used_at.is_(None))
+                     .values(used_at=datetime.now(UTC)))
+
+
 async def use_link(db: AsyncSession, raw: str, purpose: str) -> User:
     """the token from the link -> its user. Works ONCE, and only before it expires."""
     now = datetime.now(UTC)

@@ -19,7 +19,7 @@ python -m demos.forgot         # known vs unknown email: the same 202 · reset o
 python -m demos.storage        # the token in the email vs its SHA-256 in the database
 python -m demos.background     # BackgroundTasks: the answer first, the email after it
 fastapi dev app/main.py        # /docs - the emails are printed in the terminal
-pytest                         # 10 passed (SQLite and PostgreSQL)
+pytest                         # 14 passed (SQLite and PostgreSQL) - 10 + 4 homework
 ```
 
 ## Project
@@ -66,3 +66,22 @@ reset           POST /password/reset       -> 200 (link, 30 min, once) - old pas
 3. Tests for both.
 
 Answer at the start of Video 45 (API Security Hardening).
+
+## Homework answer (shown at the start of Video 45)
+```python
+# routers/auth.py - logged in, but the OLD password must still be right
+@router.post("/me/password", response_model=Message)
+async def change_password(data: PasswordChange, user: CurrentUser, db: DB, mailer: MailerDep,
+                          tasks: BackgroundTasks) -> Message:
+    if not verify_password(data.old_password, user.password_hash):
+        raise HTTPException(400, "Old password is wrong")
+    user.password_hash = hash_password(data.new_password)
+    await kill_links(db, user.id, "reset")              # an old reset link can't undo it
+    await db.commit()
+    tasks.add_task(mailer.send, changed_email(user.email))
+    return Message(detail="Password changed")
+
+# reset_password: + tasks.add_task(mailer.send, changed_email(user.email))
+```
+"Your password was changed" goes out after every reset **and** every change – if it wasn't you,
+now you know. `tests/test_homework44.py` – 4 tests. `pytest` → **14 passed** (SQLite and PostgreSQL).
