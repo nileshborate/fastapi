@@ -10,7 +10,7 @@ from redis.exceptions import RedisError
 
 from app.config import get_settings
 from app.deps import RedisDep
-from app.routers import courses, stats
+from app.routers import cache_admin, courses, stats
 
 
 @asynccontextmanager
@@ -24,6 +24,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="Course Hub Cache", version="1.0.0", lifespan=lifespan)
 app.include_router(courses.router)
 app.include_router(stats.router)
+app.include_router(cache_admin.router)        # homework 50
 
 
 @app.get("/health/redis")

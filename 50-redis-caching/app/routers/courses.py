@@ -2,16 +2,30 @@
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Path, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, TypeAdapter
 
 from app import db
-from app.cache import cache_delete, cache_get, cache_set, course_key
+from app.cache import ALL_COURSES_KEY, cache_delete, cache_get, cache_set, course_key
 from app.config import get_settings
 from app.db import Course
 from app.deps import RedisDep
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
 CourseId = Annotated[int, Path(ge=1, le=1_000_000)]
+CourseList = TypeAdapter(list[Course])               # homework 50: JSON <-> list[Course]
+
+
+@router.get("")
+async def list_courses(redis: RedisDep, response: Response) -> list[Course]:
+    cached = await cache_get(redis, ALL_COURSES_KEY)
+    if cached is not None:
+        response.headers["X-Cache"] = "HIT"
+        return CourseList.validate_json(cached)
+    courses = await db.fetch_all_courses()
+    await cache_set(redis, ALL_COURSES_KEY, CourseList.dump_json(courses).decode(),
+                    get_settings().course_ttl)
+    response.headers["X-Cache"] = "MISS"
+    return courses
 
 
 @router.get("/{course_id}")
@@ -41,5 +55,5 @@ async def update_price(course_id: CourseId, data: CourseUpdate, redis: RedisDep)
         raise HTTPException(status_code=404, detail="Course not found")
     updated = course.model_copy(update={"price": data.price})
     await db.save_course(updated)                              # 1. write the database
-    await cache_delete(redis, course_key(course_id))           # 2. THEN delete the old copy
+    await cache_delete(redis, course_key(course_id), ALL_COURSES_KEY)  # 2. THEN delete both
     return updated

@@ -18,7 +18,7 @@ python -m demos.speed       # 20 reads: 1 query vs 20 · 50 users at once: a sta
 python -m demos.stale       # stale data · the TTL ends · PATCH deletes the key · X-Cache-TTL
 python -m demos.down        # Redis down: 200 MISS (slower) · /health/redis -> 503
 fastapi dev app/main.py     # http://localhost:8000/docs - watch the X-Cache header
-pytest                      # 6 passed (fakeredis - no Redis needed)
+pytest                      # 9 passed (fakeredis - no Redis needed)
 ```
 
 ## Project
@@ -69,3 +69,35 @@ PATCH -> 1. write the database   2. DEL course:3   (the next GET is a MISS -> fr
 3. Tests for both.
 
 Answer at the start of Video 51 (Caching with Redis Part 2).
+
+## Homework answer (shown at the start of Video 51)
+```python
+# cache.py - one more key name, and DEL for several keys in one round trip
+ALL_COURSES_KEY = "courses:all"
+
+async def cache_delete(redis: Redis, *keys: str) -> None:
+    await redis.delete(*keys)                                   # (inside try/except RedisError)
+
+# routers/courses.py - the list: TypeAdapter turns list[Course] into JSON and back
+CourseList = TypeAdapter(list[Course])
+
+@router.get("")
+async def list_courses(redis: RedisDep, response: Response) -> list[Course]:
+    cached = await cache_get(redis, ALL_COURSES_KEY)
+    if cached is not None:
+        response.headers["X-Cache"] = "HIT"
+        return CourseList.validate_json(cached)
+    courses = await db.fetch_all_courses()
+    await cache_set(redis, ALL_COURSES_KEY, CourseList.dump_json(courses).decode(), ttl)
+    ...
+
+# PATCH: one changed course -> two old copies
+await cache_delete(redis, course_key(course_id), ALL_COURSES_KEY)
+
+# routers/cache_admin.py
+@router.delete("/courses/{course_id}", status_code=204)
+async def clear_course(course_id: CourseId, redis: RedisDep) -> Response:
+    await cache_delete(redis, course_key(course_id))
+    return Response(status_code=204)
+```
+`tests/test_homework50.py` – 3 tests. `pytest` → **9 passed**.

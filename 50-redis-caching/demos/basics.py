@@ -1,4 +1,4 @@
-# Run: python -m demos.basics     (first: docker run -d --name redis -p 6379:6379 redis:7-alpine)
+# Run: python -m demos.basics    (first: docker run -d --name redis -p 6379:6379 redis:7-alpine)
 # Redis on its own: keys, values, and keys that expire by themselves
 import asyncio
 

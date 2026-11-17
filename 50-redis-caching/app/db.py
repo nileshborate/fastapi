@@ -29,6 +29,12 @@ async def fetch_course(course_id: int) -> Course | None:
     return COURSES.get(course_id)
 
 
+async def fetch_all_courses() -> list[Course]:      # homework 50
+    queries["count"] += 1
+    await asyncio.sleep(get_settings().db_delay)
+    return list(COURSES.values())
+
+
 async def save_course(course: Course) -> None:
     queries["count"] += 1
     await asyncio.sleep(get_settings().db_delay)
