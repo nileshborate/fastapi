@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     service: str = "course-hub"
     log_level: str = "INFO"                 # DEBUG · INFO · WARNING · ERROR
     log_json: bool = True                   # False = plain text, nice on your own laptop
+    slow_ms: float = 500                    # homework 55: slower than this -> a WARNING
 
 
 @lru_cache

@@ -7,6 +7,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from app.config import get_settings
 from app.logging_setup import request_id_var
 
 log = logging.getLogger("app.http")
@@ -26,9 +27,15 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             response = JSONResponse({"detail": "Internal server error",
                                      "request_id": request_id}, status_code=500)
         finally:
+            duration_ms = round((time.perf_counter() - start) * 1000, 1)
             log.info("request.done", extra={
                 "method": request.method, "path": request.url.path, "status": status,
-                "duration_ms": round((time.perf_counter() - start) * 1000, 1)})
+                "duration_ms": duration_ms,
+                "client_ip": request.client.host if request.client else None,   # homework 55
+                "user_agent": request.headers.get("user-agent")})
+            if duration_ms > get_settings().slow_ms:                       # homework 55
+                log.warning("request.slow", extra={"path": request.url.path,
+                                                   "duration_ms": duration_ms})
             request_id_var.reset(token)
         response.headers["X-Request-ID"] = request_id   # the client can quote it to support
         return response

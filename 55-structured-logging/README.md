@@ -19,7 +19,7 @@ LOG_JSON=false fastapi dev app/main.py   # plain text (Windows PowerShell: $env:
 python -m demos.plain        # 3 requests at once, plain text: 18 lines - whose is whose?
 python -m demos.json_logs    # the same as JSON: find one request · count by status · the slowest
 python -m demos.errors       # a 500 with request_id "support-42" + traceback · events · card "***"
-pytest                       # 7 passed
+pytest                       # 10 passed
 ```
 
 ## Project
@@ -30,7 +30,7 @@ app/
   middleware.py      RequestContextMiddleware: X-Request-ID in/out · request.done · request.failed
   services.py        enroll() + build_report() - log EVENTS with fields: log.info("x", extra={...})
   main.py            setup_logging() · POST /enrollments · GET /reports/{id} · GET /boom (a real bug)
-demos/   common · plain · json_logs · errors        tests/   conftest (logs fixture) · test_logging
+demos/   common · plain · json_logs · errors        tests/   conftest (logs fixture) · test_logging · test_homework55
 ```
 
 ## One line
@@ -69,3 +69,26 @@ demos/   common · plain · json_logs · errors        tests/   conftest (logs f
 3. Tests for both.
 
 Answer at the start of Video 56 (Health Checks and Metrics).
+
+## Homework answer (shown at the start of Video 56)
+**1. A slow-request warning.** `config.py` gets `slow_ms: float = 500` (so `SLOW_MS=250` works too).
+In the middleware's `finally`, after `request.done`:
+```python
+if duration_ms > get_settings().slow_ms:
+    log.warning("request.slow", extra={"path": request.url.path, "duration_ms": duration_ms})
+```
+A separate WARNING line (not just a field) – so you can alert on it, and it shows up when you filter by level.
+
+**2. More context.** `request.done` gets `client_ip` (`request.client.host`) and `user_agent`
+(`request.headers.get("user-agent")`). Behind a load balancer `request.client.host` is the proxy's address –
+run `uvicorn --proxy-headers --forwarded-allow-ips=<proxy ip>` so it reads `X-Forwarded-For`.
+
+Real run with `SLOW_MS=250`:
+```
+{'level': 'INFO', 'event': 'request.done', 'path': '/reports/2', 'status': 200, 'duration_ms': 303.5, 'client_ip': '127.0.0.1', 'user_agent': 'course-app/3.1'}
+{'level': 'WARNING', 'event': 'request.slow', 'path': '/reports/2', 'duration_ms': 303.5}
+{'level': 'INFO', 'event': 'request.done', 'path': '/enrollments', 'status': 201, 'duration_ms': 2.6, 'client_ip': '127.0.0.1', 'user_agent': 'python-httpx/0.28.1'}
+```
+
+**3. Tests:** `tests/test_homework55.py` – 3 tests (a slow request is a WARNING with `slow_ms` patched to 100,
+a fast one is not, `client_ip` + `user_agent`). `pytest` → **10 passed**.

@@ -64,6 +64,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 53 | Background Jobs with Celery, Part 2: Retries with Backoff, celery beat Schedules, chain / group / chord, inspect and Flower (fresh project) | [53-celery-part2](53-celery-part2) |
 | 54 | API Versioning: v1 and v2 Side by Side, Separate Docs, One Store with Adapters, Deprecation and Sunset Headers, 410 Gone, Accept-Header Versioning (fresh project) | [54-api-versioning](54-api-versioning) |
 | 55 | Structured Logging: JSON Lines, a Request ID on Every Line with ContextVar, a Logging Filter and Middleware, Errors with Tracebacks, Redacting Secrets (fresh project) | [55-structured-logging](55-structured-logging) |
+| 56 | Health Checks and Metrics: Liveness vs Readiness, Critical and Non-Critical Dependencies, Timeouts, Draining, Prometheus Counters, Histograms and Gauges (fresh project) | [56-health-metrics](56-health-metrics) |
 
 ## Requirements
 - Python 3.10 or newer
