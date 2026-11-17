@@ -23,7 +23,7 @@ fastapi dev app/main.py
 python -m demos.inline      # register: email in the request 2.02 s · as a task 0.03 s · STARTED -> SUCCESS
 python -m demos.report      # 202 + Location · PROGRESS 1..5 of 5 · SUCCESS · course 99 -> FAILURE
 python -m demos.queue       # no worker: 3 tasks wait (LLEN celery = 3) · start it: one by one
-pytest                      # 6 passed (eager mode - no Redis, no worker)
+pytest                      # 9 passed (eager mode - no Redis, no worker)
 ```
 (The demos start their own server on port 8052 and their own worker – its log goes to `worker.log`.)
 
@@ -85,3 +85,26 @@ States: **PENDING** (waiting – or unknown!) → **STARTED** (`task_track_start
 3. Tests for both (eager mode).
 
 Answer at the start of Video 53 (Background Jobs with Celery, Part 2).
+
+## Homework answer (shown at the start of Video 53)
+```python
+# routers/users.py - check BEFORE you queue: a task for an unknown user is wasted work
+@router.post("/{email}/reminder", status_code=202)
+def remind(email: EmailStr) -> TaskStatus:
+    if email not in USERS:
+        raise HTTPException(status_code=404, detail="User not found")
+    task = send_reminder.delay(email)
+    return TaskStatus(task_id=task.id, state="PENDING")
+
+# routers/reports.py - a list in the query: ?course_ids=1&course_ids=3 (1..10 courses)
+@router.post("", status_code=202)
+def start_multi_report(course_ids: Annotated[list[int], Query(min_length=1, max_length=10)],
+                       response: Response) -> TaskStatus:
+    task = build_multi_report.delay(course_ids)            # a list of ints is JSON too
+    ...
+
+# tasks.py - one task, progress per course
+self.update_state(state="PROGRESS", meta={"course": course_id, "done": done, "of": len(course_ids)})
+```
+Real worker: `202` → STARTED → PROGRESS `{course: 1, done: 1, of: 2}` (0.58 s) → SUCCESS (1.10 s).
+`tests/test_homework52.py` – 3 tests. `pytest` → **9 passed**.

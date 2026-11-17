@@ -61,6 +61,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 50 | Caching with Redis, Part 1: the Cache-Aside Pattern, TTL, Invalidation on Update, Redis Down = Still Working (fresh project) | [50-redis-caching](50-redis-caching) |
 | 51 | Caching with Redis, Part 2: the Cache Stampede and a Redis Lock, TTL Jitter, a @cached Decorator, Hashes, Sorted Sets, Lists, Pipelines (fresh project) | [51-redis-caching-part2](51-redis-caching-part2) |
 | 52 | Background Jobs with Celery, Part 1: Broker and Result Backend in Redis, .delay(), 202 + Polling, Task States and Progress, a Worker on Windows (fresh project) | [52-celery-background-jobs](52-celery-background-jobs) |
+| 53 | Background Jobs with Celery, Part 2: Retries with Backoff, celery beat Schedules, chain / group / chord, inspect and Flower (fresh project) | [53-celery-part2](53-celery-part2) |
 
 ## Requirements
 - Python 3.10 or newer

@@ -1,0 +1,5 @@
+fastapi[standard]>=0.135
+celery[redis]>=5.4
+pydantic-settings
+flower                       # a web dashboard for Celery: celery -A app.celery_app flower
+pytest
