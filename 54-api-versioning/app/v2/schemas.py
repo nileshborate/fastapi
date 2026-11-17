@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
-from app.store import CourseRecord
+from app.store import CourseRecord, Level
 
 CENTS = Decimal("0.01")
 
@@ -23,13 +23,14 @@ class CourseV2(BaseModel):
     teacher: Teacher                        # str -> object (room for more later)
     price: Money                            # int -> {amount, currency}
     tags: list[str]                         # new
+    level: Level                            # homework 54: added - v1 never sees it
 
     @classmethod
     def from_record(cls, r: CourseRecord) -> "CourseV2":
         return cls(id=r.id, title=r.title, teacher=Teacher(name=r.teacher),
                    price=Money(amount=(Decimal(r.price_paise) / 100).quantize(CENTS),
                                  currency=r.currency),
-                   tags=r.tags)
+                   tags=r.tags, level=r.level)
 
 
 class CourseInV2(BaseModel):
@@ -37,3 +38,4 @@ class CourseInV2(BaseModel):
     teacher: Teacher
     price: Money
     tags: list[str] = Field(default=[], max_length=5)
+    level: Level = "beginner"              # optional input = not breaking

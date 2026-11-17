@@ -63,6 +63,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 52 | Background Jobs with Celery, Part 1: Broker and Result Backend in Redis, .delay(), 202 + Polling, Task States and Progress, a Worker on Windows (fresh project) | [52-celery-background-jobs](52-celery-background-jobs) |
 | 53 | Background Jobs with Celery, Part 2: Retries with Backoff, celery beat Schedules, chain / group / chord, inspect and Flower (fresh project) | [53-celery-part2](53-celery-part2) |
 | 54 | API Versioning: v1 and v2 Side by Side, Separate Docs, One Store with Adapters, Deprecation and Sunset Headers, 410 Gone, Accept-Header Versioning (fresh project) | [54-api-versioning](54-api-versioning) |
+| 55 | Structured Logging: JSON Lines, a Request ID on Every Line with ContextVar, a Logging Filter and Middleware, Errors with Tracebacks, Redacting Secrets (fresh project) | [55-structured-logging](55-structured-logging) |
 
 ## Requirements
 - Python 3.10 or newer

@@ -18,7 +18,7 @@ fastapi dev app/main.py        # http://localhost:8000/v1/docs  ·  http://local
 python -m demos.breaking       # an old app on v1: "SQL JOINS - Rs 598" · on v2: KeyError 'name'
 python -m demos.versions       # one store · deprecation headers on v1 only · Accept header · usage
 python -m demos.sunset         # after the sunset: /v1 -> 410 Gone + successor · /v2 -> 200
-pytest                         # 9 passed
+pytest                         # 12 passed
 ```
 
 ## Project
@@ -32,7 +32,7 @@ app/
   deprecation.py    DeprecationMiddleware: Deprecation · Sunset · Link · 410 after the sunset · usage
   config.py         v1_deprecated_at 2026-11-01 · v1_sunset_at 2027-05-01 · deprecation_docs
   main.py           app.mount("/v1", v1) · app.mount("/v2", v2) · GET /courses/{id} by Accept header
-demos/   breaking · versions · sunset         tests/   conftest · test_versions
+demos/   breaking · versions · sunset         tests/   conftest · test_versions · test_homework54
 ```
 
 ## Breaking or not?
@@ -82,3 +82,24 @@ After the sunset: `410 Gone` + `{"detail": "API v1 was removed. Please use v2.",
 3. Tests for both.
 
 Answer at the start of Video 55 (Structured Logging).
+
+## Homework answer (shown at the start of Video 55)
+**1. An additive change – `level`, in v2 only.** `store.py` gets `Level = Literal["beginner", "intermediate", "advanced"]`
+and `CourseRecord.level: Level = "beginner"`; `add_course(..., level="beginner")`. `CourseV2` gets `level: Level`
+(`from_record` copies it) and `CourseInV2` gets `level: Level = "beginner"` – optional, so old v2 clients still work.
+`CourseV1` is **not touched** – the frozen test `test_v1_shape_never_changes` passes without a single change.
+Only `test_v2_shape` needed the new field – that's exactly what "additive for v2" means.
+```
+GET /v2/courses/2  -> {..., "tags": ["sql"], "level": "beginner"}
+GET /v1/courses/2  -> {'id': 2, 'name': 'SQL Joins', 'teacher': 'Asha', 'price': 299}     # unchanged
+POST /v2/courses level=advanced -> 201 · level=expert -> 422 "Input should be 'beginner', 'intermediate' or 'advanced'"
+```
+
+**2. `API-Version` header.** One more parameter: `api_version: Annotated[str | None, Header()] = None` –
+FastAPI turns `api_version` into the header `api-version` (headers are case-insensitive).
+If it is missing we fall back to the Accept header; `"1"` / `"2"` pick the shape; anything else →
+**400** `{"detail": "Unknown API version: 3. Use 1 or 2."}`. Two headers can change the answer now, so
+`Vary: Accept, API-Version`.
+
+**3. Tests:** `tests/test_homework54.py` – 3 tests (level only in v2, create with a level + 422, the header + 400).
+`pytest` → **12 passed**.

@@ -22,5 +22,6 @@ def read_course(course_id: int) -> CourseV2:
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_course(data: CourseInV2) -> CourseV2:
     paise = int(data.price.amount * 100)
-    record = store.add_course(data.title, data.teacher.name, paise, data.tags)
+    record = store.add_course(data.title, data.teacher.name, paise, data.tags,
+                              data.level)
     return CourseV2.from_record(record)

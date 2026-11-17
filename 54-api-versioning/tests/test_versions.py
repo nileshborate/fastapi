@@ -15,7 +15,8 @@ def test_v1_shape_never_changes(client: TestClient) -> None:
 def test_v2_shape(client: TestClient) -> None:
     assert client.get("/v2/courses/2").json() == {
         "id": 2, "title": "SQL Joins", "teacher": {"name": "Asha"},
-        "price": {"amount": "299.50", "currency": "INR"}, "tags": ["sql"]}
+        "price": {"amount": "299.50", "currency": "INR"}, "tags": ["sql"],
+        "level": "beginner"}
 
 
 def test_one_store_for_both_versions(client: TestClient) -> None:
@@ -65,7 +66,7 @@ def test_header_versioning(client: TestClient) -> None:
     assert "name" in client.get("/courses/1").json()                  # default: v1
     response = client.get("/courses/1", headers={"Accept": V2})
     assert response.json()["title"] == "Python Basics"
-    assert response.headers["vary"] == "Accept"
+    assert response.headers["vary"] == "Accept, API-Version"
 
 
 def test_v1_usage(client: TestClient) -> None:

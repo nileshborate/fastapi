@@ -1,5 +1,9 @@
 # ONE internal model and ONE store - every API version reads and writes the same data
+from typing import Literal
+
 from pydantic import BaseModel
+
+Level = Literal["beginner", "intermediate", "advanced"]
 
 
 class CourseRecord(BaseModel):              # how WE store a course (never sent as it is)
@@ -9,6 +13,7 @@ class CourseRecord(BaseModel):              # how WE store a course (never sent 
     price_paise: int                        # money as an integer: 49900 paise = Rs 499.00
     currency: str = "INR"
     tags: list[str] = []
+    level: Level = "beginner"                # homework 54: an ADDITIVE change
 
 
 COURSES: dict[int, CourseRecord] = {
@@ -24,8 +29,9 @@ def get_course(course_id: int) -> CourseRecord | None:
     return COURSES.get(course_id)
 
 
-def add_course(title: str, teacher: str, price_paise: int, tags: list[str]) -> CourseRecord:
+def add_course(title: str, teacher: str, price_paise: int, tags: list[str],
+               level: Level = "beginner") -> CourseRecord:
     record = CourseRecord(id=max(COURSES, default=0) + 1, title=title, teacher=teacher,
-                          price_paise=price_paise, tags=tags)
+                          price_paise=price_paise, tags=tags, level=level)
     COURSES[record.id] = record
     return record

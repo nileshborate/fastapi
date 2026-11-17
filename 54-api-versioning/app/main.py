@@ -28,13 +28,20 @@ V2_TYPE = "application/vnd.coursehub.v2+json"
 
 @app.get("/courses/{course_id}", tags=["Header versioning"])
 def read_course_by_header(course_id: int, response: Response,
-                          accept: Annotated[str, Header()] = V1_TYPE) -> CourseV1 | CourseV2:
-    """the other way: ONE url - the client picks the version in the Accept header"""
+                          accept: Annotated[str, Header()] = V1_TYPE,
+                          api_version: Annotated[str | None, Header()] = None,
+                          ) -> CourseV1 | CourseV2:
+    """the other way: ONE url - the client picks the version in a header"""
+    if api_version is None:                 # homework 54: API-Version wins over Accept
+        api_version = "2" if V2_TYPE in accept else "1"
+    if api_version not in ("1", "2"):
+        raise HTTPException(status_code=400,
+                            detail=f"Unknown API version: {api_version}. Use 1 or 2.")
     record = store.get_course(course_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Course not found")
-    response.headers["Vary"] = "Accept"     # caches: same url, different answers
-    if V2_TYPE in accept:
+    response.headers["Vary"] = "Accept, API-Version"     # caches: same url, different answers
+    if api_version == "2":
         return CourseV2.from_record(record)
     return CourseV1.from_record(record)     # no version asked = what old clients got
 
