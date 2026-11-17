@@ -1,4 +1,6 @@
 fastapi[standard]>=0.135
 pydantic-settings
 prometheus-client
+redis
 pytest
+fakeredis

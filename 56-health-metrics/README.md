@@ -10,12 +10,12 @@ is doing** – requests per second, error rate, latency – as numbers over time
 ## Run it
 ```bash
 cd 56-health-metrics
-pip install -r requirements.txt          # + prometheus-client
+pip install -r requirements.txt          # + prometheus-client · redis
 fastapi dev app/main.py                  # /health/live · /health/ready · /metrics
 
 python -m demos.health      # ready · payments slow (timeout 1 s) / 503 = degraded · database gone = 503 · draining
 python -m demos.traffic     # 64 real requests -> read /metrics -> rate, error rate, avg + p95 per route
-pytest                      # 11 passed
+pytest                      # 14 passed
 ```
 
 ## Project
@@ -27,7 +27,7 @@ app/
   metrics.py   Counter · Histogram · Gauge · MetricsMiddleware (route TEMPLATE labels) · /metrics
   main.py      lifespan (draining on shutdown) · /courses · /enrollments/{id} · /reports/{id} · /boom
 demos/   common (our app :8056 + a fake payments service :8057) · health · traffic
-tests/   conftest · test_health (5) · test_metrics (6)
+tests/   conftest · test_health (5) · test_metrics (6) · test_homework56 (3)
 ```
 
 ## Liveness vs readiness
@@ -84,3 +84,25 @@ histogram_quantile(0.95, sum by (le, route) (rate(http_request_duration_seconds_
 3. Tests for both.
 
 Answer at the start of Video 57 (Docker).
+
+## Homework answer (shown at the start of Video 57)
+**1. A Redis check (critical).** `config.py` gets `redis_url`; `health.py` gets
+```python
+async def check_redis() -> None:
+    client = aioredis.Redis.from_url(get_settings().redis_url)     # import redis.asyncio as aioredis
+    try:
+        await client.ping()
+    finally:
+        await client.aclose()
+```
+and one line in `CHECKS`: `"redis": (check_redis, True)`. It runs in parallel with the others and gets the same 1 s timeout.
+Real run: Redis up → `200 ready`, redis `up` in 4.2 ms; `redis-cli shutdown` → `503 not_ready`,
+`ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.` in 2.5 ms.
+
+**2. An info metric.** `APP_INFO = Gauge("app_info", "Which version is running", ["version"])`, set once in the
+lifespan: `APP_INFO.labels(get_settings().version).set(1)` → `app_info{version="1.4.0"} 1.0`.
+The value is always 1 – the label carries the information, so a dashboard can show "1.4.0", and during a
+deploy you see two versions side by side.
+
+**3. Tests:** `tests/test_homework56.py` – 3 tests; the conftest swaps Redis for `fakeredis.FakeAsyncRedis`.
+`pytest` → **14 passed**.

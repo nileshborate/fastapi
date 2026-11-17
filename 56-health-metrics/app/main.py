@@ -7,12 +7,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 
 from app import db, health
-from app.metrics import ENROLLMENTS, MetricsMiddleware, metrics_endpoint
+from app.config import get_settings
+from app.metrics import APP_INFO, ENROLLMENTS, MetricsMiddleware, metrics_endpoint
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     db.init_db()
+    APP_INFO.labels(get_settings().version).set(1)  # homework 56: the label is the info
     app.state.shutting_down = False
     yield
     app.state.shutting_down = True                  # readiness says 503 while we drain

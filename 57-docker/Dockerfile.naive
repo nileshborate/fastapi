@@ -1,0 +1,7 @@
+# The FIRST Dockerfile most people write - it works, but look at the problems (Video 57)
+ARG BASE=python:3.13-slim
+FROM ${BASE}
+WORKDIR /app
+COPY . .
+RUN python -m venv /opt/venv && /opt/venv/bin/pip install -r requirements.txt
+CMD /opt/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000

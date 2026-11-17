@@ -18,6 +18,7 @@ REQUESTS = Counter("http_requests_total", "HTTP requests", ["method", "route", "
 LATENCY = Histogram("http_request_duration_seconds", "Request duration", ["method", "route"],
                     buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5))
 IN_PROGRESS = Gauge("http_requests_in_progress", "Requests being handled right now")
+APP_INFO = Gauge("app_info", "Which version is running", ["version"])     # homework 56
 ENROLLMENTS = Counter("enrollments_total", "New enrollments", ["course"])   # a business metric
 
 SKIP = ("/metrics", "/health")                      # don't measure the measuring

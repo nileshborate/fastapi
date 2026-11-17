@@ -4,6 +4,7 @@ import time
 from collections.abc import Awaitable, Callable
 
 import httpx
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Request, Response
 
 from app import db
@@ -27,10 +28,19 @@ async def check_payments() -> None:
         raise RuntimeError(f"payments answered {response.status_code}")
 
 
+async def check_redis() -> None:                   # homework 56
+    client = aioredis.Redis.from_url(get_settings().redis_url)
+    try:
+        await client.ping()
+    finally:
+        await client.aclose()
+
+
 # name -> (check, critical?)  critical down = NOT ready · non-critical down = degraded
 CHECKS: dict[str, tuple[Callable[[], Awaitable[None]], bool]] = {
     "database": (check_database, True),
     "payments": (check_payments, False),
+    "redis": (check_redis, True),                   # homework 56: critical
 }
 
 

@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
+import fakeredis
 import pytest
 from fastapi.testclient import TestClient
 from prometheus_client import REGISTRY
@@ -19,6 +20,9 @@ async def payments_up() -> None:                    # no network in the tests
 def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(get_settings(), "db_path", str(tmp_path / "test.db"))
     monkeypatch.setitem(health.CHECKS, "payments", (payments_up, False))
+    server = fakeredis.FakeServer()                 # homework 56: Redis without Redis
+    monkeypatch.setattr(health.aioredis.Redis, "from_url",
+                        lambda url: fakeredis.FakeAsyncRedis(server=server))
     with TestClient(app, raise_server_exceptions=False) as test_client:
         yield test_client
 

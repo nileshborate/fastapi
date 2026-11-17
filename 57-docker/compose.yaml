@@ -1,0 +1,17 @@
+# docker compose up -d --build   ·   docker compose ps   ·   docker compose down
+name: coursehub
+
+services:
+  api:
+    build: .
+    image: coursehub:1.5.0
+    ports:
+      - "8000:8000"
+    environment:
+      VERSION: "1.5.0"
+    volumes:
+      - coursehub-data:/data          # the database survives a new container
+    restart: unless-stopped
+
+volumes:
+  coursehub-data:
