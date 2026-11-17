@@ -25,6 +25,10 @@ celery_app.conf.update(
             "task": "app.tasks.daily_digest",
             "schedule": crontab(hour=7, minute=30),          # every day at 07:30
         },
+        "cleanup-2-am": {                          # homework 53
+            "task": "app.tasks.cleanup",
+            "schedule": crontab(hour=2, minute=0),
+        },
         "weekly-report-monday": {
             "task": "app.tasks.daily_digest",
             "schedule": crontab(hour=9, minute=0, day_of_week="mon"),

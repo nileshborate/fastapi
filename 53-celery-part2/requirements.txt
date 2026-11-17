@@ -3,3 +3,4 @@ celery[redis]>=5.4
 pydantic-settings
 flower                       # a web dashboard for Celery: celery -A app.celery_app flower
 pytest
+fakeredis                    # homework 53: an in-memory Redis for the tests

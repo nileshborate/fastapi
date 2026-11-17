@@ -25,7 +25,7 @@ python -m demos.retry       # RETRY 0.27 s · 1.48 s -> SUCCESS 3.67 s · bounce
 python -m demos.canvas      # chain: 3 x 0.5 s = 1.57 s · chord: 3 in parallel = 0.56 s · course 9 -> 404
 python -m demos.schedule    # beat: heartbeat every 5 s -> 3 heartbeats in 16 s
 python -m demos.watch       # GET /workers: 503 without a worker · 200 + the active task with one
-pytest                      # 8 passed (eager mode)
+pytest                      # 11 passed (eager mode)
 ```
 (For Flower to show tasks, start the worker with `-E` – task events.)
 
@@ -93,3 +93,29 @@ Run **exactly one** beat (two beats = every task twice). `crontab(hour=7, minute
 3. Tests for both.
 
 Answer at the start of Video 54 (API Versioning).
+
+## Homework answer (shown at the start of Video 54)
+```python
+# tasks.py - idempotent: SET NX = "only if nobody wrote this note yet"
+notes = store.get_store()
+key = f"sent:{to}"
+if not notes.set(key, "sending", nx=True, ex=3600):
+    return {"to": to, "skipped": True}
+try:
+    attempt = email_server.send(to, "Your report is ready")
+except Exception:
+    notes.delete(key)          # NOT sent -> free the key, or the RETRY would skip it!
+    raise
+
+# celery_app.py - the nightly cleanup
+"cleanup-2-am": {"task": "app.tasks.cleanup", "schedule": crontab(hour=2, minute=0)},
+
+@celery_app.task
+def cleanup() -> int:          # how many heartbeats it removed
+    ...
+```
+The trap: write the note **before** sending, and a failed send leaves a note behind – the retry sees it
+and **skips** a mail that was never sent. So on an error we delete the key again.
+Real worker: asha → SUCCESS, 3 attempts (3.72 s) · asha again → `skipped: True` (3.78 s) · `TTL sent:asha@…` 3598.
+`app/store.py` – one Redis client for our own notes; the tests swap it for **fakeredis**.
+`tests/test_homework53.py` – 3 tests. `pytest` → **11 passed**.
