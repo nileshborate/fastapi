@@ -81,3 +81,30 @@ Compose names things after the project: container `coursehub-api-1`, volume `cou
 3. A test that `app.healthcheck` exits 0 when the app is ready and 1 when it is not.
 
 Answer at the start of Video 58 (CI/CD with GitHub Actions).
+
+## Homework answer (shown at the start of Video 58)
+**1. A smaller image – measured.** First try: `ENV PIP_NO_COMPILE=1`. Result: 253,793,279 → 253,792,915 bytes –
+364 bytes saved, nothing. Two surprises:
+- pip reads `PIP_NO_COMPILE` the other way round: `PIP_NO_COMPILE=1` still compiles, `PIP_NO_COMPILE=0` or the
+  flag `--no-compile` does not. (Tested: 46 `.pyc` files for anyio with `=1`, 0 with `=0` and with the flag.)
+- 495 of the 888 `.pyc` files belong to **pip itself** – created with the venv, before our `pip install`.
+
+So the builder stage now does both:
+```dockerfile
+RUN /opt/venv/bin/pip install --no-compile -r requirements.txt \
+ && find /opt/venv -name __pycache__ -prune -exec rm -rf {} +
+```
+`docker history`: the venv layer 35.8 MB → 20.7 MB; the image 253.8 MB → **233.8 MB** (−20 MB, −7.9 %).
+**The price:** with no `.pyc` files (and `PYTHONDONTWRITEBYTECODE=1`) Python compiles on every start –
+`import app.main` took about 300 ms before and about 770 ms after (5 runs each). Smaller is not free: measure both.
+
+**2. Config through Compose.** `compose.yaml` gets `env_file: .env`, and `.env` holds `VERSION=1.5.1`
+(`.env.example` is in Git, `.env` is not). First run: `/health/ready` still said **1.5.0** – because the
+`environment:` block was still there, and `environment:` wins over `env_file`. Removed it →
+`{"status":"ready","version":"1.5.1"}` – same image ID, no rebuild.
+
+**3. A test for the HEALTHCHECK script.** `app/healthcheck.py` now has a `check(url, timeout)` function and
+`sys.exit(check())` under `if __name__ == "__main__":` – so a test can call it, and Docker still runs
+`python -m app.healthcheck`. `tests/test_homework57.py` starts a real tiny `http.server` on port 0 (any free port):
+200 → exit code 0, 503 → 1, nothing listening → 1. `pytest` → **7 passed**; the rebuilt container still
+becomes `(healthy)` (health log: exit code 0).

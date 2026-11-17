@@ -4,11 +4,10 @@ name: coursehub
 services:
   api:
     build: .
-    image: coursehub:1.5.0
+    image: coursehub:1.5.1-small
     ports:
       - "8000:8000"
-    environment:
-      VERSION: "1.5.0"
+    env_file: .env                    # homework 57: config without a rebuild
     volumes:
       - coursehub-data:/data          # the database survives a new container
     restart: unless-stopped

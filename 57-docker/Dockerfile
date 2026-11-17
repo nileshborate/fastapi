@@ -6,7 +6,9 @@ FROM ${BASE} AS builder
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 RUN python -m venv /opt/venv
 COPY requirements.txt .
-RUN /opt/venv/bin/pip install -r requirements.txt
+# homework 57: no .pyc files - pip's flag, then pip's own files from the venv
+RUN /opt/venv/bin/pip install --no-compile -r requirements.txt \
+ && find /opt/venv -name __pycache__ -prune -exec rm -rf {} +
 
 # ---- stage 2: only what we need to RUN the app ----
 FROM ${BASE}

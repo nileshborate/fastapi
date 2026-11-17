@@ -66,6 +66,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 55 | Structured Logging: JSON Lines, a Request ID on Every Line with ContextVar, a Logging Filter and Middleware, Errors with Tracebacks, Redacting Secrets (fresh project) | [55-structured-logging](55-structured-logging) |
 | 56 | Health Checks and Metrics: Liveness vs Readiness, Critical and Non-Critical Dependencies, Timeouts, Draining, Prometheus Counters, Histograms and Gauges (fresh project) | [56-health-metrics](56-health-metrics) |
 | 57 | FastAPI in Docker: a Naive vs a Good Dockerfile Measured, Layer Caching, Multi-Stage, .dockerignore, Non-Root, Exec-Form CMD, HEALTHCHECK, Volumes, Compose (fresh project) | [57-docker](57-docker) |
+| 58 | CI/CD with GitHub Actions: Lint, Test on Python 3.12 + 3.13, Coverage Gate, Docker Build, Smoke Test, Publish to GHCR (workflow in .github/workflows/ci-58.yml) | [58-ci-cd](58-ci-cd) |
 
 ## Requirements
 - Python 3.10 or newer
