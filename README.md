@@ -60,6 +60,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 49 | Streaming Responses and Server-Sent Events: StreamingResponse, FileResponse + Range, JSON Lines, SSE (fresh project) | [49-streaming-sse](49-streaming-sse) |
 | 50 | Caching with Redis, Part 1: the Cache-Aside Pattern, TTL, Invalidation on Update, Redis Down = Still Working (fresh project) | [50-redis-caching](50-redis-caching) |
 | 51 | Caching with Redis, Part 2: the Cache Stampede and a Redis Lock, TTL Jitter, a @cached Decorator, Hashes, Sorted Sets, Lists, Pipelines (fresh project) | [51-redis-caching-part2](51-redis-caching-part2) |
+| 52 | Background Jobs with Celery, Part 1: Broker and Result Backend in Redis, .delay(), 202 + Polling, Task States and Progress, a Worker on Windows (fresh project) | [52-celery-background-jobs](52-celery-background-jobs) |
 
 ## Requirements
 - Python 3.10 or newer

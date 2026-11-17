@@ -19,7 +19,7 @@ python -m demos.jitter      # ex=60 -> all 60 · with_jitter(60) -> 60..66
 python -m demos.types       # HSET/HINCRBY · ZADD/ZINCRBY/ZRANGE · LPUSH/LTRIM · a pipeline
 python -m demos.views       # the API: views -> counters, a leaderboard, recently viewed
 fastapi dev app/main.py     # http://localhost:8000/docs
-pytest                      # 8 passed (fakeredis[lua] - no Redis needed)
+pytest                      # 10 passed (fakeredis[lua] - no Redis needed)
 ```
 
 ## Project
@@ -80,3 +80,24 @@ Redis down / waited 3 s -> SKIP: ask the database (the API never breaks)
 3. Tests for both.
 
 Answer at the start of Video 52 (Background Jobs with Celery, Part 1).
+
+## Homework answer (shown at the start of Video 52)
+```python
+# routers/views.py - likes: a Redis SET keeps every member only once
+@router.post("/courses/{course_id}/likes")
+async def add_like(course_id: CourseId, user: User, redis: RedisDep) -> Like:
+    added = await redis.sadd(likers_key(course_id), user)       # 1 = new · 0 = already in
+    return Like(new=added == 1, likes=await redis.scard(likers_key(course_id)))
+
+# stats: the hash (views) + the set's size (likes) in one round trip
+async with redis.pipeline(transaction=False) as pipe:
+    pipe.hget(stats_key(course_id), "views")
+    pipe.scard(likers_key(course_id))
+    views, likes = await pipe.execute()
+
+# services.py - the leaderboard through the decorator, 10 seconds
+@cached("popular:{n}", ttl=10)
+async def get_popular(redis: Redis, n: int) -> list[Popular]: ...
+```
+No separate likes counter: `SCARD` (the size of the set) **is** the count – one source of truth.
+`tests/test_homework51.py` – 2 tests. `pytest` → **10 passed**.

@@ -28,7 +28,7 @@ def test_patch_invalidates(client: TestClient, store: fakeredis.FakeRedis) -> No
 def test_views_hash_sorted_set_list(client: TestClient, store: fakeredis.FakeRedis) -> None:
     for course_id in [3, 3, 1, 3, 2, 1, 4]:
         assert client.post(f"/courses/{course_id}/views?user=asha").status_code == 204
-    assert client.get("/courses/3/stats").json() == {"views": 3}
+    assert client.get("/courses/3/stats").json() == {"views": 3, "likes": 0}
     assert client.get("/popular?n=2").json() == [{"course_id": 3, "views": 3},
                                                  {"course_id": 1, "views": 2}]
     assert client.get("/users/asha/recent").json() == [4, 1, 2, 3, 1]   # newest 5
