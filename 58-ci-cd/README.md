@@ -19,7 +19,7 @@ The workflow is **not** in this folder: GitHub only reads workflows from the rep
 cd 58-ci-cd
 pip install -r requirements-dev.txt
 ruff check .                  # All checks passed!
-pytest --cov                  # 10 passed · coverage 98.77 % (needs 90 %)
+pytest --cov                  # 13 passed · coverage 98.77 % (needs 90 %)
 docker build -t coursehub:ci . && docker run -d --name api -p 8000:8000 coursehub:ci
 docker ps                     # ... (healthy)
 ```
@@ -30,6 +30,7 @@ Then push – and open the **Actions** tab on GitHub.
 app/  config.py · db.py (connections now really closed) · healthcheck.py (check() - 503 closed too)
       main.py (CourseIn.title: Field(min_length=3, max_length=80))
 tests/  test_app.py (7 incl. the title rule) · test_healthcheck.py (3, a real tiny HTTP server)
+        test_homework58.py (3 - the CI files are code too)
 pyproject.toml     ruff rules · pytest (warnings = errors) · coverage (fail_under = 90) - one place
 requirements*.txt  everything pinned - starlette too (see below)
 Dockerfile         from Video 57, with the smaller venv from homework 57
@@ -103,3 +104,46 @@ Docker Hub is blocked there, so the image used my local base (as in Video 57). G
 3. **A better smoke test:** after `(healthy)`, `POST /courses` and read the course back with `GET /courses`.
 
 Answer at the start of Video 59 (PostgreSQL in Compose).
+
+## Homework answer (shown at the start of Video 59)
+**1. Dependabot** – [`.github/dependabot.yml`](../.github/dependabot.yml) (repo root, next to `workflows/`):
+`pip` in `/58-ci-cd` and `github-actions` in `/`, weekly; the dev tools are **grouped** into one pull request.
+Checked with `check-jsonschema --builtin-schema vendor.dependabot` → *ok*. What it would propose today (real):
+
+| | pinned | newest |
+|---|---|---|
+| `fastapi` | 0.156.0 | 0.162.7 |
+| `pydantic-settings` | 2.16.1 | 2.16.3 |
+| `pytest` | 9.1.1 | 9.2.0 |
+| `actions/checkout` · `setup-python` · `upload-artifact` | v4 · v5 · v4 | v7 · v7 · v7 |
+
+Every one of them arrives as a pull request – and `ci-58` tests it before anyone merges.
+
+**2. A coverage report you can download** – in the test job:
+```yaml
+- run: pytest --cov --cov-report=term --cov-report=xml
+- name: Coverage in the job summary
+  run: coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+- uses: actions/upload-artifact@v4
+  with:
+    name: coverage-${{ matrix.python-version }}   # unique - the matrix runs twice
+    path: 58-ci-cd/coverage.xml                     # uses: ignores working-directory!
+```
+The trap: `defaults.run.working-directory` is only for `run:` steps. `coverage.xml` is written in `58-ci-cd/`, but
+`upload-artifact` looks from the repo root – `path: coverage.xml` finds nothing. Local run: `coverage.xml` 4,236 bytes,
+the summary is a Markdown table (`**TOTAL** 81 · 1 · **99%**`).
+
+**3. A better smoke test** – after `(healthy)`, a second step:
+```bash
+curl -fsS -X POST localhost:8000/courses -H "Content-Type: application/json" -d '{"title": "Smoke test"}'
+curl -fsS localhost:8000/courses | grep '"Smoke test"'
+```
+Output: `{"id":1,"title":"Smoke test"}` then `[{"id":1,"title":"Smoke test"}]` – the image can **write** to its
+database, not only start. `curl -f` turns any 4xx/5xx into a failed step; `grep` fails when the course is missing.
+
+**And a test for the CI files** – `tests/test_homework58.py` (needs `pyyaml==6.0.3`): Dependabot points at a folder
+that has `requirements.txt`, the artifact path starts with `58-ci-cd/`, the smoke test POSTs and reads back.
+
+Whole workflow, run locally: lint ✓ · test 3.12 ✓ (13 passed) · test 3.13 ✓ (13 passed) · docker ✓ – build,
+`(healthy)`, smoke test 0.02 s. `actionlint` and `check-jsonschema --builtin-schema vendor.github-workflows`: no problems.
+

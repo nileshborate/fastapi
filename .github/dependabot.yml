@@ -1,0 +1,14 @@
+# Homework 58 - Dependabot: every upgrade arrives as a pull request, and ci-58 tests it
+version: 2
+updates:
+  - package-ecosystem: pip                # requirements.txt + requirements-dev.txt
+    directory: /58-ci-cd
+    schedule:
+      interval: weekly
+    groups:                               # one PR for all dev tools instead of one each
+      dev-tools:
+        patterns: ["pytest*", "ruff", "httpx2"]
+  - package-ecosystem: github-actions     # actions/checkout@v4, setup-python@v5, ...
+    directory: /
+    schedule:
+      interval: weekly

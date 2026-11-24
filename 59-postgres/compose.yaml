@@ -1,0 +1,38 @@
+# cp .env.example .env  ·  docker compose up -d --build  ·  docker compose ps
+# docker compose down  ·  docker compose logs -f db
+# (docker compose down -v also DELETES the database volume)
+name: coursehub
+
+services:
+  db:
+    image: ${PG_IMAGE:-postgres:16}
+    environment:                                 # the values come from .env
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data          # the data lives in the volume
+      - ./db/init:/docker-entrypoint-initdb.d:ro  # runs only when the volume is EMPTY
+    ports:
+      - "127.0.0.1:5432:5432"                    # psql + pytest on your laptop - nobody else
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+
+  api:
+    build: .
+    image: coursehub:1.7.0
+    environment:                                 # "db" = the service name = the host name
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy               # not only started: accepting connections
+    restart: unless-stopped
+
+volumes:
+  pgdata:

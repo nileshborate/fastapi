@@ -46,7 +46,13 @@ jobs:
           cache: pip
           cache-dependency-path: 58-ci-cd/requirements-dev.txt
       - run: pip install -r requirements-dev.txt
-      - run: pytest --cov
+      - run: pytest --cov --cov-report=term --cov-report=xml    # homework 58: + coverage.xml
+      - name: Coverage in the job summary
+        run: coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.python-version }}           # names must be unique
+          path: 58-ci-cd/coverage.xml       # uses: ignores working-directory!
 
   docker:
     needs: test
@@ -72,6 +78,11 @@ jobs:
           docker logs api
           [ "$status" = healthy ]
           curl -fsS localhost:8000/health/ready
+      - name: Smoke test - write a course and read it back      # homework 58
+        run: |
+          curl -fsS -X POST localhost:8000/courses \
+            -H "Content-Type: application/json" -d '{"title": "Smoke test"}'
+          curl -fsS localhost:8000/courses | grep '"Smoke test"'
       - name: Publish to GitHub Container Registry
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
