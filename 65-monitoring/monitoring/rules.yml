@@ -1,0 +1,33 @@
+# Video 65 - when Prometheus should call for help. Tested: rules_test.yml (promtool test rules)
+groups:
+  - name: coursehub
+    rules:
+      - alert: ApiDown
+        # NOT "up == 0": a STOPPED container has no DNS name -> no target -> no "up" at all
+        expr: absent(up{job="coursehub-api"} == 1)
+        for: 1m                         # one missed scrape is not an outage
+        labels:
+          severity: critical
+        annotations:
+          summary: "No Course Hub api answers Prometheus"
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job="coursehub-api", status=~"5.."}[5m]))
+            / sum(rate(http_requests_total{job="coursehub-api"}[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of the requests fail with a 5xx"
+
+      - alert: SlowRequests
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket{job="coursehub-api"}[5m]))
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "95 % of the requests take up to {{ $value | humanizeDuration }}"

@@ -35,7 +35,7 @@ cd 64-ghcr
 cp .env.example .env && ./scripts/make-certs.sh
 docker compose up -d --build --wait        # compose.override.yaml adds build: - only here
 pip install -r requirements-dev.txt
-pytest --cov                               # 58 passed · coverage 98.73 %
+pytest --cov                               # 61 passed · coverage 98.73 % (58 + homework 64)
 ```
 
 ## Project – what's new
@@ -131,3 +131,33 @@ re-deploy pulled it again.
    deploy summary.
 
 Answer at the start of Video 65.
+
+## Homework answer (shown at the start of Video 65)
+**1. Check the path through nginx** – `deploy/rollout.sh`, right after an nginx reload, while the old api
+still runs:
+```bash
+sleep 2                    # "nginx -s reload" returns BEFORE the new workers take requests
+for _ in 1 2 3 4 5; do curl -fsSk -o /dev/null https://localhost/health/ready && ok=$((ok + 1)); sleep 0.5; done
+if [ "$ok" -lt 5 ]; then   # back to ~/.nginx-good (the last config that worked), reload, remove the new api
+```
+**2. An image size budget** – a step between build and push in `ci-64.yml`: over 300 MB → red, nothing pushed.
+**3. A version tag too** – the push step also pushes `:1.13.7` (from `app/config.py`) – but only if that tag
+doesn't exist yet: `docker manifest inspect` first. An existing version tag is **never moved**. Both tags and
+the digest go into the run page's summary. 3 new tests: **61 passed**.
+
+**The runs** (the same stand-in lab, a GET every 0.1 s):
+
+| push | what happened | GETs |
+|---|---|---|
+| 1.13.7 | `image: 275 MB - budget: 300 MB` · tags `e490a8394d2c 1.13.7` · deployed | 356 × 200 |
+| a comment changed, no version bump | `::warning::…coursehub:1.13.7 exists already - bump the version` → tags `e0a00193b56a (1.13.7: not moved)` | 368 × 200 |
+| 1.13.8: nginx `server api:8080` | `0 of 5 through nginx - back to the last good nginx config, old api stays` – deploy red in 19.7 s | 247 × 200 · **33 × 502 for 4.5 s** |
+| 1.13.9: a 60 MB file in `app/` | `::error::the image is 395 MB - over budget` – nothing pushed, no deploy | 142 × 200 |
+
+The registry afterwards: `1.13.0 1.13.7 1.13.8` + the commit tags – no 1.13.9, and 1.13.7 still points at its
+first commit.
+
+**Finding – my first check passed WITH the typo.** It ran `curl` right after `nginx -s reload` – and got a 200:
+the reload only *signals* nginx; the old workers still answer for a moment with the OLD config. The deploy went
+through, the check step of homework 63 caught it and rolled back – **233 × 502 for 33.4 s**. With `sleep 2` and
+"5 of 5 must answer": **33 × 502 for 4.5 s**, and the server never even got to the rollback.

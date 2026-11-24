@@ -109,3 +109,10 @@ def test_rollout_pulls_before_it_changes_anything() -> None:
     assert pull < migrate                                     # a failed pull: nothing touched
     assert not any(" build" in line for line in lines if line.startswith("$DC"))
     assert any(line.startswith(': "${GIT_SHA:?') for line in lines)   # no commit: stop
+
+
+def test_homework_64_checks_through_nginx_before_the_old_api_stops() -> None:
+    script = (DEPLOY / "rollout.sh").read_text()
+    check = script.index("https://localhost/health/ready")
+    assert check < script.index('docker stop "$old"')          # the old api still runs
+    assert 'cp "$GOOD"/*.conf nginx/' in script                  # back to the last good config

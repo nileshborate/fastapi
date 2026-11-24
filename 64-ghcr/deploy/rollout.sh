@@ -8,6 +8,7 @@ cd "$(dirname "$0")/.."
 DC="docker compose -f compose.yaml"
 WAIT=${ROLLOUT_WAIT:-60}                     # seconds for the new api to become healthy
 KEEP=${KEEP_IMAGES:-5}                       # images kept on the server - older ones: pruned
+GOOD="$HOME/.nginx-good"                     # homework 64: the last nginx config that worked
 : "${GIT_SHA:?the commit whose image CI pushed - ci-command.sh sets it}"
 export GIT_SHA
 
@@ -22,7 +23,9 @@ $DC run --rm migrate
 old=$($DC ps -q api)
 if [ -z "$old" ]; then                       # the very first deploy: nothing to replace
     echo "==> first start"
-    exec $DC up -d --wait
+    $DC up -d --wait
+    mkdir -p "$GOOD" && cp nginx/*.conf "$GOOD/"
+    exit 0
 fi
 
 echo "==> start the new api next to the old one"
@@ -50,6 +53,27 @@ if [ "$conf" != "$(cat "$HOME/.nginx-conf.sha256" 2>/dev/null)" ]; then
     $DC exec -T nginx nginx -t -q && $DC exec -T nginx nginx -s reload 2>/dev/null
     echo "$conf" > "$HOME/.nginx-conf.sha256"
 fi
+# homework 64: check the path a USER takes - through nginx - right after the reload,
+# while the old api still runs
+echo "==> check through nginx: https://localhost/health/ready - 5 times, all must answer"
+sleep 2                    # "nginx -s reload" returns BEFORE the new workers take requests
+ok=0
+for _ in 1 2 3 4 5; do
+    curl -fsSk -o /dev/null https://localhost/health/ready && ok=$((ok + 1))
+    sleep 0.5
+done
+if [ "$ok" -lt 5 ]; then
+    echo "!!! $ok of 5 through nginx - back to the last good nginx config, old api stays" >&2
+    if [ -d "$GOOD" ]; then
+        cp "$GOOD"/*.conf nginx/
+        $DC exec -T nginx nginx -s reload 2>/dev/null
+        cat nginx/*.conf | sha256sum > "$HOME/.nginx-conf.sha256"
+    fi
+    docker rm -f "$new" >/dev/null
+    exit 1
+fi
+cp nginx/*.conf "$GOOD/" 2>/dev/null || { mkdir -p "$GOOD" && cp nginx/*.conf "$GOOD/"; }
+
 echo "==> nginx: re-resolves 'api' every 10 s (resolver valid=10s) - wait for it"
 sleep 11
 echo "==> stop the old api (uvicorn finishes its open requests on SIGTERM)"
@@ -64,4 +88,4 @@ $DC rm -f migrate >/dev/null 2>&1 || true    # a STOPPED migrate container still
 # newest first (by build time). The RUNNING image can't be removed: docker refuses - fine
 docker image ls "$repo" --format '{{.Repository}}:{{.Tag}}' | tail -n +"$((KEEP + 1))" \
     | xargs -r docker rmi >/dev/null 2>&1 || true
-docker image ls "$repo" --format '{{.Tag}}  {{.Size}}'   # no head: it stops reading early too 
+docker image ls "$repo" --format '{{.Tag}}  {{.Size}}'   # no head: it stops reading early too

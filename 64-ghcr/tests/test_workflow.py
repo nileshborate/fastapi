@@ -79,10 +79,25 @@ def test_homework_63_summary_and_webhook() -> None:
 def test_the_image_is_built_once_tagged_with_the_commit_and_pushed() -> None:
     image = jobs()["image"]
     assert image["permissions"] == {"contents": "read", "packages": "write"}   # this job only
-    build, push = image["steps"][1], image["steps"][2]
+    build, push = image["steps"][1], image["steps"][-1]
     assert '-t "$IMAGE:$GITHUB_SHA"' in build["run"]         # one tag per commit
     assert push["if"] == "github.event_name != 'pull_request'"   # a PR builds, never pushes
     assert push["env"]["TOKEN"] == "${{ secrets.GITHUB_TOKEN }}"
     assert "--password-stdin" in push["run"] and ":latest" not in str(image)
     env = yaml.safe_load(WORKFLOW.read_text())["env"]
     assert env["IMAGE"] == env["IMAGE"].lower() and env["IMAGE"].startswith("ghcr.io/")
+
+
+# ---------------------------------------------------------------- homework 64
+def test_homework_64_size_budget_before_the_push() -> None:
+    steps = jobs()["image"]["steps"]
+    names = [s.get("name", "") for s in steps]
+    budget = names.index("Image size budget - 300 MB")
+    assert budget < names.index(steps[-1]["name"])        # the push is the last step
+    assert '[ "$mb" -le 300 ]' in steps[budget]["run"]
+
+
+def test_homework_64_version_tag_is_never_moved() -> None:
+    push = jobs()["image"]["steps"][-1]["run"]
+    assert 'docker manifest inspect "$IMAGE:$version"' in push   # exists already?
+    assert push.index("manifest inspect") < push.index('docker push --quiet "$IMAGE:$version"')

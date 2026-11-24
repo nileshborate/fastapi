@@ -1,0 +1,41 @@
+# Video 65 - unit tests for the alert rules: promtool test rules rules_test.yml
+rule_files:
+  - rules.yml
+evaluation_interval: 15s
+
+tests:
+  - name: the api container is GONE - no target, so no "up" series at all
+    interval: 15s
+    input_series:
+      - series: 'up{job="coursehub-api", instance="172.20.0.5:8000"}'
+        values: "1 1 1 1 stale stale stale stale stale stale stale stale stale stale"
+    alert_rule_test:
+      - eval_time: 1m30s                # gone for 30 s: pending, not firing yet
+        alertname: ApiDown
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: ApiDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: "No Course Hub api answers Prometheus"
+
+  - name: 1 of 11 requests fails - more than 5 %
+    interval: 15s
+    input_series:
+      - series: 'http_requests_total{job="coursehub-api", route="/courses", status="200"}'
+        values: "0+150x40"              # +150 per 15 s = 10 per second
+      - series: 'http_requests_total{job="coursehub-api", route="/courses", status="500"}'
+        values: "0+15x40"               # 1 per second
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: HighErrorRate
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: HighErrorRate
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "9.091% of the requests fail with a 5xx"

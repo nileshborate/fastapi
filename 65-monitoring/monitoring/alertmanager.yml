@@ -1,0 +1,16 @@
+# Video 65 - Alertmanager: Prometheus says "ApiDown is firing" - this decides who hears it
+route:
+  receiver: slack
+  group_by: [alertname]
+  group_wait: 30s                       # wait a bit: alerts that fire together - one message
+  group_interval: 1m                    # a group changed: tell me after 1 min (resolved too)
+  repeat_interval: 4h                   # still broken? say it again - not every minute
+
+receivers:
+  - name: slack
+    slack_configs:
+      - api_url_file: /run/secrets/slack_url   # the webhook URL is a secret: NOT in git
+        channel: "#coursehub-alerts"
+        send_resolved: true                         # "fixed" is news too
+        title: '{{ .Status | toUpper }}: {{ .CommonLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }} {{ end }}'

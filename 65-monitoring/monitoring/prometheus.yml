@@ -1,0 +1,25 @@
+# Video 65 - Prometheus: every 15 s it asks each api "GET /metrics" and keeps the numbers
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s              # the alert rules are checked as often
+  external_labels:                      # added in 1.14.1: on EVERY alert it sends
+    server: coursehub-1                 # which server? (one day there are two)
+
+rule_files:
+  - rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: coursehub-api
+    dns_sd_configs:                     # EVERY api container: Docker's DNS knows them all
+      - names: ["api"]                  # (during a rollout there are two)
+        type: A
+        port: 8000
+        refresh_interval: 15s
+  - job_name: prometheus                # Prometheus watches itself too
+    static_configs:
+      - targets: ["localhost:9090"]

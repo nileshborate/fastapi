@@ -84,6 +84,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build the image of this commit
         run: docker build --build-arg GIT_SHA="$GITHUB_SHA" -t "$IMAGE:$GITHUB_SHA" .
+      # homework 64.2: a budget - a big file that sneaks in turns the run red BEFORE any push
+      - name: Image size budget - 300 MB
+        run: |
+          mb=$(( $(docker image inspect --format '{{.Size}}' "$IMAGE:$GITHUB_SHA") / 1000000 ))
+          echo "image: $mb MB - budget: 300 MB" | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$mb" -le 300 ] || { echo "::error::the image is $mb MB - over budget"; exit 1; }
       - name: Push it to GitHub Container Registry - never for a pull request
         if: github.event_name != 'pull_request'
         env:
@@ -92,7 +98,18 @@ jobs:
         run: |
           echo "$TOKEN" | docker login "$REGISTRY" -u "$ACTOR" --password-stdin
           docker push --quiet "$IMAGE:$GITHUB_SHA"
-          docker image inspect --format '{{index .RepoDigests 0}}' "$IMAGE:$GITHUB_SHA"
+          # homework 64.3: the version tag too - but an existing one is NEVER moved
+          version=$(grep -oP 'version: str = "\K[^"]+' app/config.py)
+          if docker manifest inspect "$IMAGE:$version" >/dev/null 2>&1; then
+            echo "::warning::$IMAGE:$version exists already - bump the version in config.py"
+            version="($version: not moved)"
+          else
+            docker tag "$IMAGE:$GITHUB_SHA" "$IMAGE:$version"
+            docker push --quiet "$IMAGE:$version"
+          fi
+          digest=$(docker image inspect -f '{{index .RepoDigests 0}}' "$IMAGE:$GITHUB_SHA")
+          echo "$digest"
+          echo "tags: ${GITHUB_SHA:0:12} $version · ${digest#*@}" >> "$GITHUB_STEP_SUMMARY"
           docker logout "$REGISTRY"
 
   deploy:                                   # NO checkout, NO build: the server pulls

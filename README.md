@@ -73,6 +73,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 62 | Deploy to a Cloud VM: SSH Keys and a Deploy User, Hardening sshd, ufw (and how Docker Goes Around It), a Domain, a Let's Encrypt Certificate with certbot, Renewals with webroot + a Deploy Hook, a Deploy Script with rsync + Compose | [62-deploy](62-deploy) |
 | 63 | Deploy from GitHub Actions: Push to main → Lint, Tests and an Image Build → a Deploy over SSH with a Restricted Key, Environment Secrets and Variables, Known Hosts, Concurrency, Checking the Live Commit, Rollbacks | [63-deploy-actions](63-deploy-actions) |
 | 64 | Build Once: CI Builds the Image, Pushes It to GitHub Container Registry, the Server Only Pulls – One Tag per Commit, Same Digest, a Read-Only Token, Pruning Old Images | [64-ghcr](64-ghcr) |
+| 65 | Monitoring and Alerts: /metrics with prometheus-client, Prometheus Finds Every API by Docker DNS, Tested Alert Rules (ApiDown, HighErrorRate, SlowRequests), Alertmanager to Slack, Reload without Restart | [65-monitoring](65-monitoring) |
 
 ## Requirements
 - Python 3.10 or newer
