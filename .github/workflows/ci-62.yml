@@ -1,0 +1,97 @@
+# Video 62 - the tests, the deploy scripts, and the production stack (with dev certificates)
+name: ci-62
+
+on:
+  push:
+    branches: [main]
+    paths: ["62-deploy/**", ".github/workflows/ci-62.yml"]
+  pull_request:
+    paths: ["62-deploy/**", ".github/workflows/ci-62.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-62-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: 62-deploy
+
+env:                                        # the tests: a throwaway CI database
+  TEST_DATABASE_URL: postgresql://coursehub:coursehub-dev@localhost:5432/coursehub_test
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff==0.17.5
+      - run: ruff check --output-format=github .
+      - name: shellcheck - a deploy script runs as root on your server
+        run: shellcheck deploy/*.sh scripts/*.sh
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: coursehub
+          POSTGRES_PASSWORD: coursehub-dev
+          POSTGRES_DB: coursehub_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U coursehub -d coursehub_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: 62-deploy/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: pytest --cov
+
+  stack:                                    # the whole stack - dev certificates, like a laptop
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: .env + development certificates
+        run: cp .env.example .env && ./scripts/make-certs.sh
+      - name: The production file on its own is valid
+        run: docker compose -f compose.yaml config --quiet
+      - name: nginx -t
+        run: docker compose run --rm --no-deps nginx nginx -t
+      - name: db -> migrate -> api -> nginx, wait until (healthy)
+        run: docker compose up -d --build --wait
+      - name: Port 80 answers Let's Encrypt's check
+        run: |
+          mkdir -p certs/acme/.well-known/acme-challenge
+          echo ci-token > certs/acme/.well-known/acme-challenge/ci
+          curl -fsS http://localhost/.well-known/acme-challenge/ci | grep '^ci-token$'
+      - name: Everything else on port 80 goes to HTTPS
+        run: >-
+          curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' http://localhost/health/live
+          | grep '^301 https://localhost/health/live'
+      - name: HTTPS through nginx
+        run: >-
+          curl -fsS --cacert certs/ca.crt https://localhost/health/ready
+          | grep '"revision":"0005"'
+      - name: The logs, when a step failed
+        if: failure()
+        run: docker compose logs
+      - name: Clean up
+        if: always()
+        run: docker compose down -v

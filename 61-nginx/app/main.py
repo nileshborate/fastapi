@@ -1,4 +1,4 @@
-# Video 61 - Course Hub 1.10.0 behind Nginx: links use the scheme + host the CLIENT used
+# Video 61 - Course Hub 1.10.1 behind Nginx: links use the scheme + host the CLIENT used
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Literal
@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.config import get_settings
 from app.db import Database, head_revision, known_revisions
+from app.request_log import RequestLogMiddleware
 
 settings = get_settings()
 db = Database(settings.database_url)
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Course Hub", lifespan=lifespan)
+app.add_middleware(RequestLogMiddleware)          # homework 61: the request id in our log
 
 
 class CourseIn(BaseModel):

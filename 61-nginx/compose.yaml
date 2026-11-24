@@ -4,7 +4,7 @@ name: coursehub
 
 x-app: &app                                      # shared by migrate + api (a YAML anchor)
   build: .
-  image: coursehub:1.10.0
+  image: coursehub:1.10.1
   environment:
     DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 
@@ -53,6 +53,7 @@ services:
     volumes:
       - ./nginx:/etc/nginx/conf.d:ro             # the FOLDER: edits show up inside
       - ./certs:/etc/nginx/certs:ro             # ./scripts/make-certs.sh
+      - ./docs-site:/srv/docs-site:ro           # homework 61: static files
     depends_on:
       api:
         condition: service_healthy

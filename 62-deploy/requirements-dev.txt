@@ -1,0 +1,7 @@
+-r requirements.txt
+pytest==9.1.1
+pytest-cov==7.1.0
+httpx2==2.16.0             # starlette 1.10: the TestClient wants httpx2
+ruff==0.17.5
+crossplane==0.5.8          # parses nginx/default.conf in the tests
+pyyaml==6.0.3              # a test reads compose.yaml

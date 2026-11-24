@@ -1,4 +1,4 @@
-# Course Hub 1.10.0 - the api (behind Nginx in production)
+# Course Hub 1.10.1 - the api (behind Nginx in production)
 import psycopg
 import pytest
 from alembic import command
@@ -14,7 +14,7 @@ NOBODY = "postgresql://nobody:x@127.0.0.1:1/none"     # port 1: nothing listens 
 def test_ready_at_head(client: TestClient) -> None:
     assert client.get("/health/live").json() == {"status": "alive"}
     assert client.get("/health/ready").json() == {
-        "status": "ready", "version": "1.10.0", "revision": "0005"}
+        "status": "ready", "version": "1.10.1", "revision": "0005"}
 
 
 def test_courses_get_a_level(client: TestClient) -> None:

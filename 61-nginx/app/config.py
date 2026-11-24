@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    version: str = "1.10.0"
+    version: str = "1.10.1"
     database_url: str                # postgresql://user:password@host:5432/database
     db_wait_s: float = 10            # how long the app waits for PostgreSQL at startup
     migration_lock_timeout: str = "5s"   # a migration waits at most this long for a table lock

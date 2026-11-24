@@ -22,7 +22,7 @@ curl --cacert certs/ca.crt https://localhost/health/ready
 curl -I http://localhost/courses      # 301 -> https://localhost/courses
 
 pip install -r requirements-dev.txt   # the tests need the db service: docker compose up -d db
-pytest --cov                          # 30 passed · coverage 98.50 %
+pytest --cov                          # 35 passed · coverage 98.73 % (with the homework)
 ```
 Ports 80 and 443 must be free on your machine. Browsers: import `certs/ca.crt` as a trusted authority – or
 accept the warning. **Production:** a certificate from a real CA such as Let's Encrypt (Video 62).
@@ -114,3 +114,76 @@ stand-in images, built before – `--build` needs Docker Hub.) `actionlint` + th
    the api never sees those requests.
 
 Answer at the start of Video 62 (deploy to a cloud VM).
+
+## Homework answer (shown at the start of Video 62)
+
+The homework changed this folder: the app is now **1.10.1** (`app/request_log.py`), `nginx/default.conf` has a
+write limit, a JSON access log and a static location, and there's a new `docs-site/` folder. The numbers in the
+sections above are from Video 61 (1.10.0). Tests: **35 passed** · coverage **98.73 %**
+(`tests/test_request_log.py` + 3 new tests in `tests/test_nginx_conf.py`).
+
+### 1. A stricter limit for writes – and the second inheritance trap
+```nginx
+map $request_method $write_key { POST $binary_remote_addr; default ""; }  # an EMPTY key is never counted
+limit_req_zone $write_key zone=writes:10m rate=2r/s;
+
+location = /courses {
+    limit_req zone=perip burst=20 nodelay;     # listed AGAIN - see below
+    limit_req zone=writes burst=4 nodelay;
+    proxy_pass http://api;
+}
+```
+The proxy settings (`proxy_set_header`, the timeouts) moved to the **server** level, so every location with a
+`proxy_pass` inherits them. Measured:
+
+| | |
+|---|---|
+| 10 `POST /courses` at once | **5 × 201, 5 × 429** (burst 4 + 1) |
+| 6 POSTs one after another | `201 201 201 201 201 429` |
+| a 429 from the write limit | still has `strict-transport-security` – no `add_header` in the location |
+| 60 `GET /courses` at once | 24 × 200, 36 × 429 – the per-IP limit, not the write limit |
+
+**Finding – `limit_req` is inherited like `add_header`.** With only `limit_req zone=writes` in the location,
+60 `GET /courses` at once gave **60 × 200** – the server's per-IP limit was gone there – while
+`/health/live` (location `/`) still gave 23 × 200, 37 × 429. A `limit_req` in a location **replaces** the
+server's ones (nginx docs: "inherited from the previous level if and only if there are no limit_req
+directives defined on the current level"). So `perip` is listed again, and a test checks it.
+
+### 2. A JSON access log with a request id
+`log_format json_access escape=json '{…"request_id":"$request_id",…"request_time":$request_time,
+"upstream_response_time":"$upstream_response_time"…}'` · `proxy_set_header X-Request-ID $request_id;` ·
+`add_header X-Request-ID $request_id always;` – the api logs it (`app/request_log.py`, a small Video 55).
+
+```
+$ curl -D - https://localhost/courses/1 | grep x-request-id
+x-request-id: b4ca6ebfb023f54d712e5924b258d3d4
+$ docker compose logs nginx | grep b4ca6ebf
+{"time":"2026-11-17T06:47:51+00:00","request_id":"b4ca6ebfb023f54d712e5924b258d3d4","remote_addr":"172.18.0.1",
+ "request":"GET /courses/1 HTTP/2.0","status":200,"bytes":68,"request_time":0.007,"upstream_response_time":"0.007",…}
+$ docker compose logs api | grep b4ca6ebf
+{"event": "request.done", "request_id": "b4ca6ebfb023f54d712e5924b258d3d4", "method": "GET",
+ "path": "/courses/1", "status": 200, "duration_ms": 3.8}
+```
+One id, both logs. `request_time` is the whole request in nginx (7 ms), `upstream_response_time` only the api
+(7 ms – the api itself measured 3.8 ms of it). A static file: `"request_time":0.000,"upstream_response_time":""`
+– no upstream at all. `upstream_response_time` is a **string** in the format: for a 429 or a static file it's
+empty, and with retries it can be `"0.004, 0.002"`.
+
+### 3. Static files from nginx
+`location /docs-site/ { root /srv; expires 1h; }` + `./docs-site:/srv/docs-site:ro` in compose.yaml:
+
+| | |
+|---|---|
+| `GET /docs-site/index.html` | 200 · `cache-control: max-age=3600` · `expires` · `etag` · all 5 security headers · `content-encoding: gzip` |
+| sizes | index.html **2,027 → 906 bytes** with gzip · style.css **1,050 → 545 bytes** (`text/css` added to `gzip_types`) |
+| again with `If-None-Match` | **304, 0 bytes** |
+| a missing file | 404 – from nginx |
+| the api's log | **0** lines with `docs-site` |
+
+**The `add_header` trap, measured.** With `add_header Cache-Control "public, max-age=3600";` in that location
+instead of `expires 1h;`, the answer had **only** `cache-control: public, max-age=3600` – no HSTS, no
+nosniff, no `X-Frame-Options`, no `Referrer-Policy`, no `X-Request-ID`. With `expires 1h` all of them are back.
+`expires` is its own directive, so it doesn't trigger the trap.
+
+**ci-61 again, with the homework** (run the way a runner does): lint ✓ · **35 passed** (98.73 %) · `nginx -t` ✓ ·
+`up -d --wait` 10.76 s · `"version":"1.10.1","revision":"0005"` over HTTPS · HSTS ✓ · port 8000 closed ✓.
