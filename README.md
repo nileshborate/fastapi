@@ -76,7 +76,11 @@ Each folder contains the code, homework answer and interview questions for one v
 | 65 | Monitoring and Alerts: /metrics with prometheus-client, Prometheus Finds Every API by Docker DNS, Tested Alert Rules (ApiDown, HighErrorRate, SlowRequests), Alertmanager to Slack, Reload without Restart | [65-monitoring](65-monitoring) |
 | 66 | Performance and Load Testing: Locust from 50 to 800 Users, p50/p95/req/s, a Rate-Limit Allow-List, an Nginx Reload That Never Loaded, Pagination, 2 uvicorn Workers + Multiprocess Metrics | [66-performance](66-performance) |
 | 67 | Off-site Backups, Secrets and the Production Checklist: restic to an Append-Only rest-server, a Disaster Restore, a Weekly Restore Test, the restic Password, Secret File Permissions, gitleaks over Every Commit (last technical video) | [67-offsite-backups](67-offsite-backups) |
-| 68 | Thank You + What's Next (series finale) | – |
+| 68 | Thank You + What's Next (series finale): the Road in 5 Parts, How to Use This Repository, What to Learn Next, Coming Next – Complete Projects from Scratch to Deployment | [68-whats-next](68-whats-next) |
+
+## ✅ The series is complete
+69 videos · 67 project folders · from *What is FastAPI?* to a monitored, load-tested, backed-up API on a real server.
+What's next – and the complete projects coming to the channel: [68-whats-next](68-whats-next).
 
 ## Requirements
 - Python 3.10 or newer

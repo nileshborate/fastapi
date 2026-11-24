@@ -139,7 +139,7 @@ An `X-Cache` header says HIT / MISS / EXPIRED.
 `environment.process_exit_code = 1` and `!!! FAILED: …`. 2 new tests: **78 passed**, coverage 98.97 %.
 
 **The first try failed – and that was good.** I put `add_header X-Cache …` INSIDE `location = /courses`. The
-Video 62 test went red: `test_security_headers_only_on_the_server`. An `add_header` in a location throws away ALL
+Video 61 test went red: `test_security_headers_only_on_the_server`. An `add_header` in a location throws away ALL
 the server's `add_header`s – HSTS & co. would have disappeared from /courses. Now it sits at server level:
 ```
 $ curl -sD - -o /dev/null https://coursehub.example.com/courses      (3 times)
