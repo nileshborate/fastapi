@@ -5,7 +5,7 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 
-from app import main
+from app import main, metrics
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -63,3 +63,23 @@ def test_api_down_survives_a_container_that_is_gone() -> None:
     groups = yaml.safe_load((ROOT / "monitoring" / "rules.yml").read_text())["groups"]
     api_down = next(rule for rule in groups[0]["rules"] if rule["alert"] == "ApiDown")
     assert api_down["expr"] == 'absent(up{job="coursehub-api"} == 1)'   # not "up == 0"
+
+
+def test_homework_65_critical_alerts_page_somebody() -> None:
+    am = yaml.safe_load((ROOT / "monitoring" / "alertmanager.yml").read_text())
+    pager, everything = am["route"]["routes"]
+    assert pager == {"matchers": ['severity="critical"'], "receiver": "pager",
+                     "repeat_interval": "30m", "continue": True}       # ... and Slack too
+    assert everything == {"receiver": "slack"}
+    hook = next(r for r in am["receivers"] if r["name"] == "pager")["webhook_configs"][0]
+    assert hook["url_file"] == "/run/secrets/pager_url"                # a secret file, not git
+
+
+def test_homework_65_two_versions_for_5_minutes() -> None:
+    groups = yaml.safe_load((ROOT / "monitoring" / "rules.yml").read_text())["groups"]
+    rule = next(r for r in groups[0]["rules"] if r["alert"] == "TwoVersionsRunning")
+    assert "count by (version) (coursehub_info" in rule["expr"] and rule["for"] == "5m"
+
+
+def test_homework_65_buckets_go_past_the_5_s_timeout() -> None:
+    assert max(b for b in metrics.LATENCY._upper_bounds if b != float("inf")) == 10

@@ -5,6 +5,12 @@ route:
   group_wait: 30s                       # wait a bit: alerts that fire together - one message
   group_interval: 1m                    # a group changed: tell me after 1 min (resolved too)
   repeat_interval: 4h                   # still broken? say it again - not every minute
+  routes:                               # homework 65: who hears WHAT
+    - matchers: ['severity="critical"']
+      receiver: pager                   # critical: wake somebody up ...
+      repeat_interval: 30m              # ... and again every 30 min until it's fixed
+      continue: true                    # keep matching: Slack gets it too
+    - receiver: slack                   # everything (warnings too): Slack, every 4 h
 
 receivers:
   - name: slack
@@ -14,3 +20,7 @@ receivers:
         send_resolved: true                         # "fixed" is news too
         title: '{{ .Status | toUpper }}: {{ .CommonLabels.alertname }}'
         text: '{{ range .Alerts }}{{ .Annotations.summary }} {{ end }}'
+  - name: pager                         # a pager / on-call service: PagerDuty, Opsgenie, ...
+    webhook_configs:
+      - url_file: /run/secrets/pager_url        # a secret too - a file on the server
+        send_resolved: true

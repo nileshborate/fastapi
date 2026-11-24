@@ -90,6 +90,8 @@ services:
       - ./monitoring:/etc/alertmanager:ro
       # the Slack webhook URL: a secret file on the server (.env: SLACK_URL_FILE), not in git
       - ${SLACK_URL_FILE:-./monitoring/slack_url.example}:/run/secrets/slack_url:ro
+      # homework 65: the pager webhook URL - a secret file too
+      - ${PAGER_URL_FILE:-./monitoring/pager_url.example}:/run/secrets/pager_url:ro
     ports:
       - "127.0.0.1:9093:9093"
     restart: unless-stopped

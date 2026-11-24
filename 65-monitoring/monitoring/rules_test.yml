@@ -39,3 +39,45 @@ tests:
               severity: warning
             exp_annotations:
               summary: "9.091% of the requests fail with a 5xx"
+
+  - name: homework 65 - two versions answer for 5 minutes
+    interval: 15s
+    input_series:
+      - series: 'coursehub_info{job="coursehub-api", version="1.14.1", commit="aaaaaaaaaaaa"}'
+        values: "1x40"
+      - series: 'coursehub_info{job="coursehub-api", version="1.14.2", commit="bbbbbbbbbbbb"}'
+        values: "1x40"
+    alert_rule_test:
+      - eval_time: 3m                   # 3 min: still "a rollout" - quiet
+        alertname: TwoVersionsRunning
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: TwoVersionsRunning
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "2 versions of Course Hub answer - a rollout stuck halfway?"
+
+  - name: homework 65 - every request takes 6 s (the 5 s pool timeout + a bit)
+    interval: 15s
+    input_series:                       # 1 request a second - all in the 7.5 s bucket
+      - series: 'http_request_duration_seconds_bucket{job="coursehub-api", le="5.0"}'
+        values: "0x60"
+      - series: 'http_request_duration_seconds_bucket{job="coursehub-api", le="7.5"}'
+        values: "0+15x60"
+      - series: 'http_request_duration_seconds_bucket{job="coursehub-api", le="10.0"}'
+        values: "0+15x60"
+      - series: 'http_request_duration_seconds_bucket{job="coursehub-api", le="+Inf"}'
+        values: "0+15x60"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: SlowRequests
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SlowRequests
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "95 % of the requests take up to 7.375s"

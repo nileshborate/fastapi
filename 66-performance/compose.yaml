@@ -1,0 +1,106 @@
+# PRODUCTION - on the server: docker compose -f compose.yaml ... (deploy/rollout.sh)
+# Video 64: the server never BUILDS - it pulls the image CI built + pushed for this commit.
+# Video 65: + prometheus and alertmanager - published on 127.0.0.1 only (an SSH tunnel)
+# On your laptop, compose.override.yaml is added automatically: build: + dev certificates
+name: coursehub
+
+x-logging: &logging                              # docker keeps logs forever - unless you say so
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-app: &app                                      # shared by migrate + api (a YAML anchor)
+  # ONE tag per commit - never :latest. IMAGE: in the server's .env; GIT_SHA: ci-command.sh
+  image: ${IMAGE:-ghcr.io/nileshborate/coursehub}:${GIT_SHA:-dev}
+  environment:
+    DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+  logging: *logging
+
+services:
+  db:
+    image: ${PG_IMAGE:-postgres:16}
+    environment:                                 # the values come from .env - on the server
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data          # the data lives in the volume
+    # NO ports: a published port goes AROUND ufw (Docker writes its own iptables rules)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+    logging: *logging
+
+  migrate:                                   # a ONE-SHOT job: same image, another command
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"                               # a failed migration must NOT loop
+
+  api:
+    <<: *app
+    environment:                   # <<: merges the TOP level only - environment is replaced
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      FORWARDED_ALLOW_IPS: "*"     # uvicorn: trust X-Forwarded-* - only nginx can reach us
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}   # Video 66: uvicorn workers - one per CPU core
+      PROMETHEUS_MULTIPROC_DIR: /tmp/prometheus   # the workers share their metrics here
+    tmpfs:
+      - /tmp/prometheus:uid=10001             # empty at every start - old files = wrong numbers
+    depends_on:
+      migrate:
+        condition: service_completed_successfully  # exit 0: the schema first, then the code
+    restart: unless-stopped
+
+  nginx:
+    image: ${NGINX_IMAGE:-nginx:1.28}
+    ports:                                       # the ONLY published ports
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro             # the FOLDER: edits show up inside
+      - ./docs-site:/srv/docs-site:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro     # certbot's certificates, on the server
+      - /var/www/certbot:/var/www/certbot:ro     # the HTTP-01 challenge files
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
+
+  # Video 65 - reads GET /metrics from every api every 15 s and checks monitoring/rules.yml
+  prometheus:
+    image: ${PROM_IMAGE:-prom/prometheus:v3.5.0}
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus",
+              "--storage.tsdb.retention.time=15d"]
+    volumes:
+      - ./monitoring:/etc/prometheus:ro          # the FOLDER: a reload sees the new files
+      - promdata:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"    # NEVER public: Docker's ports go around ufw (Video 62)
+    restart: unless-stopped
+    logging: *logging
+
+  alertmanager:                  # Prometheus says "firing" - this one tells a human
+    image: ${AM_IMAGE:-prom/alertmanager:v0.28.1}
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml",
+              "--storage.path=/alertmanager"]
+    volumes:
+      - ./monitoring:/etc/alertmanager:ro
+      # the Slack webhook URL: a secret file on the server (.env: SLACK_URL_FILE), not in git
+      - ${SLACK_URL_FILE:-./monitoring/slack_url.example}:/run/secrets/slack_url:ro
+      # homework 65: the pager webhook URL - a secret file too
+      - ${PAGER_URL_FILE:-./monitoring/pager_url.example}:/run/secrets/pager_url:ro
+    ports:
+      - "127.0.0.1:9093:9093"
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  pgdata:
+  promdata:

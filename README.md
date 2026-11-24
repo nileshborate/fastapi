@@ -74,6 +74,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 63 | Deploy from GitHub Actions: Push to main → Lint, Tests and an Image Build → a Deploy over SSH with a Restricted Key, Environment Secrets and Variables, Known Hosts, Concurrency, Checking the Live Commit, Rollbacks | [63-deploy-actions](63-deploy-actions) |
 | 64 | Build Once: CI Builds the Image, Pushes It to GitHub Container Registry, the Server Only Pulls – One Tag per Commit, Same Digest, a Read-Only Token, Pruning Old Images | [64-ghcr](64-ghcr) |
 | 65 | Monitoring and Alerts: /metrics with prometheus-client, Prometheus Finds Every API by Docker DNS, Tested Alert Rules (ApiDown, HighErrorRate, SlowRequests), Alertmanager to Slack, Reload without Restart | [65-monitoring](65-monitoring) |
+| 66 | Performance and Load Testing: Locust from 50 to 800 Users, p50/p95/req/s, a Rate-Limit Allow-List, an Nginx Reload That Never Loaded, Pagination, 2 uvicorn Workers + Multiprocess Metrics | [66-performance](66-performance) |
 
 ## Requirements
 - Python 3.10 or newer

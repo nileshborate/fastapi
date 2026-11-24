@@ -39,7 +39,7 @@ cd 65-monitoring
 cp .env.example .env && ./scripts/make-certs.sh
 docker compose up -d --build --wait        # + prometheus + alertmanager (Slack URL: the example file)
 pip install -r requirements-dev.txt
-pytest --cov                               # 68 passed · coverage 98.95 %
+pytest --cov                               # 71 passed · coverage 98.95 % (68 + homework 65)
 docker run --rm -v "$PWD/monitoring:/m:ro" -w /m --entrypoint promtool prom/prometheus:v3.5.0 \
     test rules rules_test.yml              # the alert rules have unit tests too: SUCCESS
 ```
@@ -144,3 +144,32 @@ annotation is not re-evaluated after the alert stops. Read RESOLVED as "it's ove
 3. **Fix SlowRequests honestly:** buckets up to 10 s, and a `promtool` unit test for SlowRequests.
 
 Answer at the start of Video 66.
+
+## Homework answer (shown at the start of Video 66)
+**1. Route by severity** – `monitoring/alertmanager.yml` gets child routes. `critical` goes to a second receiver,
+`pager` (Alertmanager's own `webhook_configs`, the URL in a secret file `/run/secrets/pager_url`), repeats every
+30 min, and `continue: true` – so the next route sends it to Slack too. Everything else: Slack only.
+```
+$ amtool config routes test --config.file=/etc/alertmanager/alertmanager.yml severity=critical
+pager,slack
+$ amtool config routes test --config.file=/etc/alertmanager/alertmanager.yml severity=warning
+slack
+```
+**2. A rollout stuck halfway** – `TwoVersionsRunning`: `count(count by (version) (coursehub_info{…})) > 1` for 5 min.
+**3. SlowRequests, honestly** – buckets `…, 5, 7.5, 10` + promtool unit tests for both new rules
+(`rules_test.yml`: 4 tests, SUCCESS). 3 new pytest tests: **71 passed**.
+
+**The runs** (the same stand-in lab; a pager stand-in next to the Slack stand-in):
+
+| what | Slack | the pager |
+|---|---|---|
+| the api stops (ApiDown, critical) | FIRING 16:09:54 · RESOLVED 16:10:54 | FIRING 16:09:54 · RESOLVED 16:10:54 – the same second |
+| an OLD api (1.14.0) runs next to 1.14.1 | `FIRING: TwoVersionsRunning: 2 versions of Course Hub answer - a rollout stuck halfway?` after **353 s** · RESOLVED 60 s after I removed it | nothing – a warning |
+| the database stops | HighErrorRate 23.47 % · `SlowRequests: 95 % of the requests take up to 7.281s` | nothing |
+
+PromQL during the stuck rollout: `count by (version) (coursehub_info)` → `1.14.0: 1`, `1.14.1: 1`.
+
+**Finding – 7.281 s is honest now, but it's still a bucket.** In the 2 minutes after the database stopped, /courses
+had ~54 requests (`increase()` estimates): ~37 failed FAST (≤ 5 ms – the pool's old connections were dead)
+and ~17 waited for the 5 s pool timeout – all in the 7.5 s bucket. `histogram_quantile` puts p95 somewhere INSIDE that bucket (5 – 7.5 s):
+7.281 s. Before: "up to 5s" – capped. The bucket edges are your precision.

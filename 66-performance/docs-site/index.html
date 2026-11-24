@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Course Hub - API guide</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- homework 61: a static page served by nginx itself - the api never sees it -->
+  <main>
+    <h1>Course Hub API</h1>
+    <p>Course Hub is the example project of <em>FastAPI Mastery: Zero to Production</em>
+      by Nilesh Technology. Every request goes through nginx: HTTPS, compression, limits
+      and security headers happen there, and the API answers behind it.</p>
+    <h2>Endpoints</h2>
+    <table>
+      <tr><th>Method</th><th>Path</th><th>What it does</th></tr>
+      <tr>
+        <td><code>GET</code></td><td><code>/health/live</code></td>
+        <td>the process is alive</td>
+      </tr>
+      <tr>
+        <td><code>GET</code></td><td><code>/health/ready</code></td>
+        <td>the database is reachable and at the head revision</td>
+      </tr>
+      <tr>
+        <td><code>GET</code></td><td><code>/courses</code></td>
+        <td>every course: id, title, description, level</td>
+      </tr>
+      <tr>
+        <td><code>GET</code></td><td><code>/courses/{id}</code></td>
+        <td>one course - 404 when it doesn't exist</td>
+      </tr>
+      <tr>
+        <td><code>POST</code></td><td><code>/courses</code></td>
+        <td>a new course: 201 + a Location header, at most 2 a second</td>
+      </tr>
+      <tr>
+        <td><code>GET</code></td><td><code>/whoami</code></td>
+        <td>what the app believes about your request: client, scheme, url</td>
+      </tr>
+    </table>
+    <h2>Limits</h2>
+    <p>10 requests a second per IP address, bursts of 20. Writes: 2 a second, bursts of 4.
+      Too many requests get 429. Bodies over 1 MB get 413.</p>
+    <h2>Request ids</h2>
+    <p>Every answer has an <code>X-Request-ID</code> header. Quote it when you report a problem:
+      the same id is in nginx's access log and in the API's log.</p>
+  </main>
+</body>
+</html>

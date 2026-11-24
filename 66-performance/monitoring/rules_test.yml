@@ -1,0 +1,83 @@
+# Video 65 - unit tests for the alert rules: promtool test rules rules_test.yml
+rule_files:
+  - rules.yml
+evaluation_interval: 15s
+
+tests:
+  - name: the api container is GONE - no target, so no "up" series at all
+    interval: 15s
+    input_series:
+      - series: 'up{job="coursehub-api", instance="172.20.0.5:8000"}'
+        values: "1 1 1 1 stale stale stale stale stale stale stale stale stale stale"
+    alert_rule_test:
+      - eval_time: 1m30s                # gone for 30 s: pending, not firing yet
+        alertname: ApiDown
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: ApiDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: "No Course Hub api answers Prometheus"
+
+  - name: 1 of 11 requests fails - more than 5 %
+    interval: 15s
+    input_series:
+      - series: 'http_requests_total{job="coursehub-api", route="/courses", status="200"}'
+        values: "0+150x40"              # +150 per 15 s = 10 per second
+      - series: 'http_requests_total{job="coursehub-api", route="/courses", status="500"}'
+        values: "0+15x40"               # 1 per second
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: HighErrorRate
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: HighErrorRate
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "9.091% of the requests fail with a 5xx"
+
+  - name: homework 65 - two versions answer for 5 minutes
+    interval: 15s
+    input_series:
+      - series: 'coursehub_info{job="coursehub-api", version="1.14.1", commit="aaaaaaaaaaaa"}'
+        values: "1x40"
+      - series: 'coursehub_info{job="coursehub-api", version="1.14.2", commit="bbbbbbbbbbbb"}'
+        values: "1x40"
+    alert_rule_test:
+      - eval_time: 3m                   # 3 min: still "a rollout" - quiet
+        alertname: TwoVersionsRunning
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: TwoVersionsRunning
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "2 versions of Course Hub answer - a rollout stuck halfway?"
+
+  - name: homework 65 - every request takes 6 s (the 5 s pool timeout + a bit)
+    interval: 15s
+    input_series:                       # 1 request a second - all in the 7.5 s bucket
+      - series: 'http_request_duration_seconds_bucket{job="coursehub-api", le="5.0"}'
+        values: "0x60"
+      - series: 'http_request_duration_seconds_bucket{job="coursehub-api", le="7.5"}'
+        values: "0+15x60"
+      - series: 'http_request_duration_seconds_bucket{job="coursehub-api", le="10.0"}'
+        values: "0+15x60"
+      - series: 'http_request_duration_seconds_bucket{job="coursehub-api", le="+Inf"}'
+        values: "0+15x60"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: SlowRequests
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SlowRequests
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "95 % of the requests take up to 7.375s"

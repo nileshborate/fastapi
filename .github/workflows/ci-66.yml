@@ -1,0 +1,197 @@
+# Video 66 - the Video 65 pipeline for 66-performance (the load test runs from YOUR machine)
+name: ci-66
+
+on:
+  push:
+    branches: [main]
+    paths: ["66-performance/**", ".github/workflows/ci-66.yml"]
+  pull_request:                             # a PR: lint + tests, never a deploy
+    paths: ["66-performance/**", ".github/workflows/ci-66.yml"]
+  workflow_dispatch:                        # Actions -> ci-66 -> Run workflow (by hand)
+    inputs:
+      commit:
+        description: "A full commit id to deploy - empty: the newest. An older one = a rollback"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:                                # a PR: a newer push cancels the older run
+  group: ci-66-${{ github.ref }}            # main: NEVER - that would kill a running deploy
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  TEST_DATABASE_URL: postgresql://coursehub:coursehub-dev@localhost:5432/coursehub_test
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/nileshborate/coursehub     # lowercase! one tag per commit, never :latest
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 66-performance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff==0.17.5
+      - run: ruff check --output-format=github .
+      - run: shellcheck deploy/*.sh scripts/*.sh
+      - name: The monitoring config + unit tests for the alert rules (Video 65)
+        run: |
+          promtool() { docker run --rm -v "$PWD/monitoring:/m:ro" -w /m \
+                         --entrypoint promtool prom/prometheus:v3.5.0 "$@"; }
+          promtool check config prometheus.yml
+          promtool test rules rules_test.yml
+          docker run --rm -v "$PWD/monitoring:/m:ro" --entrypoint amtool \
+            prom/alertmanager:v0.28.1 check-config /m/alertmanager.yml
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 66-performance
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: coursehub
+          POSTGRES_PASSWORD: coursehub-dev
+          POSTGRES_DB: coursehub_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U coursehub -d coursehub_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: 66-performance/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: pytest --cov
+
+  image:                                    # built ONCE - the server runs exactly this
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write                       # this job only: push to GHCR
+    defaults:
+      run:
+        working-directory: 66-performance
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image of this commit
+        run: docker build --build-arg GIT_SHA="$GITHUB_SHA" -t "$IMAGE:$GITHUB_SHA" .
+      # homework 64.2: a budget - a big file that sneaks in turns the run red BEFORE any push
+      - name: Image size budget - 300 MB
+        run: |
+          mb=$(( $(docker image inspect --format '{{.Size}}' "$IMAGE:$GITHUB_SHA") / 1000000 ))
+          echo "image: $mb MB - budget: 300 MB" | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$mb" -le 300 ] || { echo "::error::the image is $mb MB - over budget"; exit 1; }
+      - name: Push it to GitHub Container Registry - never for a pull request
+        if: github.event_name != 'pull_request'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}  # this run's own token: no secret to create
+          ACTOR: ${{ github.actor }}
+        run: |
+          echo "$TOKEN" | docker login "$REGISTRY" -u "$ACTOR" --password-stdin
+          docker push --quiet "$IMAGE:$GITHUB_SHA"
+          # homework 64.3: the version tag too - but an existing one is NEVER moved
+          version=$(grep -oP 'version: str = "\K[^"]+' app/config.py)
+          if docker manifest inspect "$IMAGE:$version" >/dev/null 2>&1; then
+            echo "::warning::$IMAGE:$version exists already - bump the version in config.py"
+            version="($version: not moved)"
+          else
+            docker tag "$IMAGE:$GITHUB_SHA" "$IMAGE:$version"
+            docker push --quiet "$IMAGE:$version"
+          fi
+          digest=$(docker image inspect -f '{{index .RepoDigests 0}}' "$IMAGE:$GITHUB_SHA")
+          echo "$digest"
+          echo "tags: ${GITHUB_SHA:0:12} $version · ${digest#*@}" >> "$GITHUB_STEP_SUMMARY"
+          docker logout "$REGISTRY"
+
+  deploy:                                   # NO checkout, NO build: the server pulls
+    needs: image
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:                            # Settings -> Environments: secrets, reviewers
+      name: production
+      url: https://${{ vars.DOMAIN }}
+    concurrency:                            # one deploy at a time - NEVER cancelled half-way
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      COMMIT: ${{ inputs.commit || github.sha }}
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DOMAIN: ${{ vars.DOMAIN }}
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: The SSH key + the server's host key - from secrets, never from the repo
+        env:                                # secrets go in via env - never ${{ }} inside run
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key     # the LAST newline matters
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Deploy this commit - the key can do nothing else
+        run: |
+          start=$(date +%s)
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$DEPLOY_HOST" "deploy $COMMIT"
+          echo "DEPLOY_SECONDS=$(( $(date +%s) - start ))" >> "$GITHUB_ENV"
+
+      - name: Check it the way a user does - is OUR commit running?
+        id: check
+        run: |
+          curl -fsS --retry 3 --retry-all-errors "https://$DOMAIN/health/ready" | tee ready.json
+          grep -q "\"commit\":\"${COMMIT:0:12}\"" ready.json
+
+      # homework 63.1: deployed, but OUR commit doesn't answer -> the one before, by itself
+      - name: Roll back by itself - the job stays red
+        id: rollback
+        if: failure() && steps.check.outcome == 'failure'
+        run: ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$DEPLOY_HOST" rollback
+
+      # homework 63.2: the run page shows it - Markdown in $GITHUB_STEP_SUMMARY
+      - name: Deploy summary
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          ROLLBACK: ${{ steps.rollback.outcome }}
+        run: |
+          version=$(grep -o '"version":"[^"]*"' ready.json 2>/dev/null | cut -d'"' -f4 || true)
+          {
+            echo "### Deploy: $JOB_STATUS"
+            echo "| commit | version | deploy (s) | automatic rollback |"
+            echo "|---|---|---|---|"
+            echo "| \`${COMMIT:0:12}\` | ${version:--} | ${DEPLOY_SECONDS:--} | $ROLLBACK |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # homework 63.3: a red deploy tells somebody - the webhook URL is a secret too
+      - name: Tell somebody
+        if: failure()
+        env:
+          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+          ROLLBACK: ${{ steps.rollback.outcome }}
+        run: |
+          [ -n "$WEBHOOK_URL" ] || { echo "no DEPLOY_WEBHOOK_URL secret - skipped"; exit 0; }
+          printf '{"text":"Deploy of %s FAILED (automatic rollback: %s) - %s"}' \
+            "${COMMIT:0:12}" "$ROLLBACK" "$RUN" \
+            | curl -fsS -X POST -H 'Content-Type: application/json' --data @- "$WEBHOOK_URL"
+
+      - name: Remove the key from the runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

@@ -8,7 +8,8 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 REQUESTS = Counter("http_requests_total", "HTTP requests, by route and status",
                    ["method", "route", "status"])
 LATENCY = Histogram("http_request_duration_seconds", "Time to answer, by route",
-                    ["method", "route"], buckets=(.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5))
+                    ["method", "route"],    # homework 65: up to 10 s - past the pool timeout
+                    buckets=(.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 7.5, 10))
 IN_PROGRESS = Gauge("http_requests_in_progress", "Requests being answered right now")
 APP_INFO = Gauge("coursehub_info", "Always 1 - the labels say which version runs",
                  ["version", "commit"])

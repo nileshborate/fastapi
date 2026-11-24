@@ -21,6 +21,14 @@ groups:
         annotations:
           summary: "{{ $value | humanizePercentage }} of the requests fail with a 5xx"
 
+      - alert: TwoVersionsRunning       # homework 65: a rollout stuck halfway
+        expr: count(count by (version) (coursehub_info{job="coursehub-api"})) > 1
+        for: 5m                         # a normal rollout: ~30 s with two versions
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value }} versions of Course Hub answer - a rollout stuck halfway?"
+
       - alert: SlowRequests
         expr: |
           histogram_quantile(0.95,

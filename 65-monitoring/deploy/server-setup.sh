@@ -43,6 +43,9 @@ if [ ! -f /home/deploy/coursehub/.env ]; then
     # Video 65: the Slack webhook URL for alertmanager - paste yours into this file
     echo "SLACK_URL_FILE=/home/deploy/slack_url" >> /home/deploy/coursehub/.env
     install -m 644 -o deploy -g deploy /dev/null /home/deploy/slack_url   # read by: nobody
+    # homework 65: the pager's webhook URL - critical alerts only
+    echo "PAGER_URL_FILE=/home/deploy/pager_url" >> /home/deploy/coursehub/.env
+    install -m 644 -o deploy -g deploy /dev/null /home/deploy/pager_url
     chown deploy:deploy /home/deploy/coursehub/.env
 fi
 echo "==> 6. a backup every night at 03:17 - deploy/restore-test.sh proves it can be restored"

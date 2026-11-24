@@ -1,0 +1,1 @@
+locust==2.47.0     # Video 66: the load generator - on YOUR machine, not in the api image
