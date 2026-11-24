@@ -27,7 +27,7 @@ docker compose run --rm migrate alembic current      # 0003 (head)
 docker compose run --rm migrate alembic history
 
 pip install -r requirements-dev.txt   # the tests need the db service running
-pytest --cov                          # 19 passed · coverage 98.26 %
+pytest --cov                          # 26 passed (19 + 7 homework) · coverage 98.32 %
 ```
 **Coming from Video 59 with data in the volume?** The table already exists – run
 `docker compose run --rm migrate alembic stamp 0001` once, then `docker compose up -d` (see below).
@@ -40,6 +40,8 @@ migrations/versions/
   0001_baseline.py           the courses table EXACTLY as Video 59 (+ homework) left it
   0002_add_level.py          level text NOT NULL DEFAULT 'beginner' + a CHECK
   0003_index_created_at.py   CREATE INDEX CONCURRENTLY - in an autocommit_block
+  0004_expand_name.py        homework 60: add name + a sync trigger + a backfill in batches
+  0005_contract_name.py      homework 60: NOT VALID -> VALIDATE -> SET NOT NULL · drop title
 app/tables.py                the schema as SQLAlchemy Core - only for `alembic check`
 app/db.py                    the pool (no CREATE TABLE any more) · revision() reads alembic_version
 app/main.py                  /health/ready: 503 "migrations pending" if the database isn't at head
@@ -47,6 +49,7 @@ compose.yaml                 db + migrate (one-shot) + api · x-app: a YAML anch
 Dockerfile                   ONE image for api AND migrate: + alembic.ini + migrations/
 tests/test_migrations.py     8 tests: one head · down+up · no drift · stamp · 2 migrators · lock_timeout · --sql
 tests/test_app.py            8 tests · test_healthcheck.py (3) · conftest.py: migrates the TEST database
+tests/test_homework60.py     7 tests: expand/contract · a NEWER database is ready · the CI compose job
 ```
 
 ## The production rules
@@ -121,3 +124,73 @@ The service container was `(healthy)` after 2.3 s. `actionlint` + the JSON schem
    `/health/ready` – it must say `"revision": "0003"`.
 
 Answer at the start of Video 61 (Nginx + HTTPS in front of the api).
+
+## Homework answer (shown at the start of Video 61)
+
+The homework changed this folder: the head is now **0005** and the app is **1.9.1**. The numbers in the
+sections above are from Video 60 (head 0003, app 1.8.0).
+
+### 1. Expand and contract: `title` → `name` with zero downtime
+Why not `op.alter_column("courses", "title", new_column_name="name")`? During a rolling deploy the **old** code is
+still running – and the moment the column is renamed, every old copy fails. So two migrations, two releases:
+
+| release | migrations | the code |
+|---|---|---|
+| 1.8.0 | up to 0003 | writes `title` |
+| **1.9.0** | + **0004 expand**: `ADD COLUMN name` · a trigger keeps `title` and `name` equal · backfill in batches | writes `name` – the API still says `"title"` (`name AS title`) |
+| **1.9.1** | + **0005 contract**: `name` NOT NULL + its check · `DROP COLUMN title` | the same code |
+
+0005 runs only **after the last 1.8.0 copy is gone**.
+
+**I ran the rollout on 1,000,000 courses** (my stand-in PostgreSQL 16.15, `log_min_duration_statement = 50`):
+- 0004 (`docker compose run --rm migrate`, image 1.9.0): 9.97 s with the container start. The backfill ran in batches
+  of 10,000 ids, each one its own transaction – **not one batch took 50 ms**. Meanwhile 1.8.0 answered
+  `POST /courses` with 201 in 5–14 ms. Afterwards: `name IS NULL` → 0 of 1,000,003 rows.
+- **A real finding:** the 1.8.0 readiness check from Video 60 said
+  `{"status":"not_ready","database":"migrations pending","revision":"0004","expected":"0003"}` 503 – it would have
+  taken every old copy out of the load balancer in the middle of the rollout. So 1.9.x checks **"behind"**, not
+  **"different"**: a revision this code knows but isn't the head → 503; a revision it doesn't know (newer) → ready.
+  `test_a_newer_database_is_ready` sets `0006` and gets 200.
+- 1.9.0 on port 8001 **next to** 1.8.0 on port 8000: both `POST`s → 201, and `psql` showed `title` = `name` for both
+  rows – the trigger copies in both directions.
+- `docker compose stop api` (the last 1.8.0), then 0005 with image 1.9.1: 3.06 s. The database log:
+  `VALIDATE CONSTRAINT courses_name_not_null` **85 ms**, `VALIDATE CONSTRAINT courses_name_check` **161 ms**.
+  `\d courses`: `name | text | not null`, no `title`.
+- An old 1.8.0 copy started against 0005: `POST` → **500**, `UndefinedColumn: column "title" of relation "courses"
+  does not exist`. That is exactly what a plain rename does to the old code – on the first request.
+
+### 2. A safe NOT NULL on a big table
+`SET NOT NULL` alone scans every row while it holds an `ACCESS EXCLUSIVE` lock – nobody can even read the table.
+On 1,000,000 rows that scan took **89 ms** (in a transaction, rolled back). It grows with the table. The safe way, in 0005:
+```sql
+ALTER TABLE courses ADD CONSTRAINT courses_name_not_null CHECK (name IS NOT NULL) NOT VALID;  -- instant
+-- COMMIT here: VALIDATE in the SAME transaction would still hold the lock from the line above
+ALTER TABLE courses VALIDATE CONSTRAINT courses_name_not_null;   -- reads every row, writes go on
+ALTER TABLE courses ALTER COLUMN name SET NOT NULL;              -- PostgreSQL 12+: trusts the valid CHECK, no scan
+ALTER TABLE courses DROP CONSTRAINT courses_name_not_null;
+```
+`VALIDATE` takes a `SHARE UPDATE EXCLUSIVE` lock (PostgreSQL docs: reads and writes go on); in Alembic it runs in an
+`autocommit_block()` so the `NOT VALID` step is committed first.
+**With `description` it fails – and that's the lesson:** `NOT VALID` took 1.2 ms, then `VALIDATE` →
+`ERROR: check constraint "courses_description_not_null" of relation "courses" is violated by some row`.
+NULLs are allowed in `description`, so first backfill a value, **then** validate.
+
+### 3. Migrations in the docker job of CI – `.github/workflows/ci-60.yml`, job `compose`
+```yaml
+      - run: cp .env.example .env
+      - name: db -> migrate -> api, then wait until everything is (healthy)
+        run: docker compose up -d --build --wait
+      - name: Smoke test - the api is ready and the schema is at head
+        run: curl -fsS localhost:8000/health/ready | grep '"revision":"0005"'
+      - name: The logs, when a step failed
+        if: failure()
+        run: docker compose logs
+```
+`--wait` waits for **(healthy)** – and it accepts a one-shot service that exited with 0. My run (images built
+before, Docker Hub isn't reachable here): `up -d --wait` 10.23 s → `migrate Exited (0)`, `db` and `api` (healthy),
+then `{"status":"ready","version":"1.9.1","revision":"0005"}`. `actionlint` + the schema check: ok.
+
+
+**ci-60 again, with the homework** (run the way a runner does): lint ✓ · test 3.12: **26 passed** · test 3.13:
+26 passed · migrations: one head 0.42 s, up from nothing 0.72 s, `alembic check` 0.58 s, down to base + up through
+0005 1.25 s, `migration.sql` 2,064 bytes.

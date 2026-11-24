@@ -69,6 +69,7 @@ Each folder contains the code, homework answer and interview questions for one v
 | 58 | CI/CD with GitHub Actions: Lint, Test on Python 3.12 + 3.13, Coverage Gate, Docker Build, Smoke Test, Publish to GHCR (workflow in .github/workflows/ci-58.yml) | [58-ci-cd](58-ci-cd) |
 | 59 | PostgreSQL in Compose: a Database Service with a Named Volume, Init Scripts, pg_isready Health Check, depends_on service_healthy, a psycopg Connection Pool, Real-Database Tests, the Password Trap | [59-postgres](59-postgres) |
 | 60 | Alembic Migrations in Production: a One-Shot migrate Service, stamp an Existing Database, an Advisory Lock for Parallel Migrators, lock_timeout, CREATE INDEX CONCURRENTLY, a Readiness Check on the Revision, Migrations Tested in CI | [60-alembic](60-alembic) |
+| 61 | Nginx + HTTPS in front of FastAPI: a Reverse Proxy in Compose, Dev Certificates with openssl, HTTP → HTTPS, HTTP/2, gzip, Security Headers, Body + Rate Limits, Proxy Headers for Uvicorn, 502 vs 504 | [61-nginx](61-nginx) |
 
 ## Requirements
 - Python 3.10 or newer

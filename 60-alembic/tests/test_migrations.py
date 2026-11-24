@@ -41,7 +41,7 @@ def finish(p: subprocess.Popen) -> tuple[int, str]:
 
 
 def test_one_head(cfg: Config) -> None:
-    assert ScriptDirectory.from_config(cfg).get_heads() == ["0003"] == [head_revision()]
+    assert ScriptDirectory.from_config(cfg).get_heads() == ["0005"] == [head_revision()]
 
 
 def test_down_to_nothing_and_up_again(cfg: Config) -> None:
@@ -49,7 +49,7 @@ def test_down_to_nothing_and_up_again(cfg: Config) -> None:
     with psycopg.connect(URL) as conn:
         assert conn.execute("SELECT to_regclass('courses')").fetchone()[0] is None
     command.upgrade(cfg, "head")
-    assert version() == "0003"
+    assert version() == "0005"
 
 
 def test_the_tables_match_the_migrations(cfg: Config) -> None:
@@ -67,7 +67,7 @@ def test_an_existing_database_is_stamped_not_migrated(cfg: Config) -> None:
     command.stamp(cfg, "0001")                     # "this database is already at 0001"
     command.upgrade(cfg, "head")
     with psycopg.connect(URL) as conn:
-        assert conn.execute("SELECT title, level FROM courses").fetchall() == [
+        assert conn.execute("SELECT name, level FROM courses").fetchall() == [
             ("PostgreSQL in Compose", "beginner")]
 
 
@@ -77,7 +77,7 @@ def test_two_migrators_at_the_same_time() -> None:
     results = [finish(p) for p in (first, second)]
     assert [code for code, _ in results] == [0, 0]    # the advisory lock: one after the other
     assert sum("Running upgrade  -> 0001" in err for _, err in results) == 1
-    assert version() == "0003"
+    assert version() == "0005"
 
 
 def test_a_migration_does_not_wait_forever_for_a_lock(cfg: Config) -> None:

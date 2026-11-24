@@ -17,6 +17,12 @@ def head_revision() -> str:
     return ScriptDirectory.from_config(Config(ALEMBIC_INI)).get_current_head() or ""
 
 
+def known_revisions() -> set[str]:
+    """Every migration THIS code knows - a revision that isn't here is newer than the code"""
+    script = ScriptDirectory.from_config(Config(ALEMBIC_INI))
+    return {s.revision for s in script.walk_revisions()}
+
+
 class Database:
     def __init__(self, url: str) -> None:
         self.url = url
@@ -55,14 +61,16 @@ class Database:
         except psycopg.Error:
             return None
 
+    # homework 60: the column is "name" now - the API still says "title" (its contract)
     def add_course(self, title: str, description: str | None, level: str) -> dict:
         with self.connection() as conn:
             return conn.execute(
-                "INSERT INTO courses (title, description, level) VALUES (%s, %s, %s)"
-                " RETURNING id, title, description, level",
+                "INSERT INTO courses (name, description, level) VALUES (%s, %s, %s)"
+                " RETURNING id, name AS title, description, level",
                 (title, description, level)).fetchone()
 
     def list_courses(self) -> list[dict]:
         with self.connection() as conn:
             return conn.execute(
-                "SELECT id, title, description, level FROM courses ORDER BY id").fetchall()
+                "SELECT id, name AS title, description, level FROM courses ORDER BY id"
+            ).fetchall()

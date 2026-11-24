@@ -1,0 +1,62 @@
+# cp .env.example .env  ·  ./scripts/make-certs.sh  ·  docker compose up -d --build --wait
+# https://localhost -> nginx -> api:8000. The api has NO published port: nginx is the way in
+name: coursehub
+
+x-app: &app                                      # shared by migrate + api (a YAML anchor)
+  build: .
+  image: coursehub:1.10.0
+  environment:
+    DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+
+services:
+  db:
+    image: ${PG_IMAGE:-postgres:16}
+    environment:                                 # the values come from .env
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data          # the data lives in the volume
+      - ./db/init:/docker-entrypoint-initdb.d:ro  # runs only when the volume is EMPTY
+    ports:
+      - "127.0.0.1:5432:5432"                    # psql + pytest on your laptop - nobody else
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+
+  migrate:                                   # a ONE-SHOT job: same image, another command
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"                               # a failed migration must NOT loop
+
+  api:
+    <<: *app
+    environment:                   # <<: merges the TOP level only - environment is replaced
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      FORWARDED_ALLOW_IPS: "*"     # uvicorn: trust X-Forwarded-* - only nginx can reach us
+    depends_on:
+      migrate:
+        condition: service_completed_successfully  # exit 0: the schema first, then the code
+    restart: unless-stopped
+
+  nginx:
+    image: ${NGINX_IMAGE:-nginx:1.28}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro             # the FOLDER: edits show up inside
+      - ./certs:/etc/nginx/certs:ro             # ./scripts/make-certs.sh
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:

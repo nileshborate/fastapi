@@ -1,4 +1,4 @@
-# Course Hub 1.8.0 - the api on a database that Alembic migrated
+# Course Hub 1.9.1 - the api on a database that Alembic migrated
 import psycopg
 import pytest
 from alembic import command
@@ -14,7 +14,7 @@ NOBODY = "postgresql://nobody:x@127.0.0.1:1/none"     # port 1: nothing listens 
 def test_ready_at_head(client: TestClient) -> None:
     assert client.get("/health/live").json() == {"status": "alive"}
     assert client.get("/health/ready").json() == {
-        "status": "ready", "version": "1.8.0", "revision": "0003"}
+        "status": "ready", "version": "1.9.1", "revision": "0005"}
 
 
 def test_courses_get_a_level(client: TestClient) -> None:
@@ -36,11 +36,11 @@ def test_the_database_checks_the_level_too(client: TestClient) -> None:
 
 
 def test_not_ready_while_migrations_are_pending(client: TestClient, cfg: Config) -> None:
-    command.downgrade(cfg, "0002")                      # the NEW code on an OLD schema
+    command.downgrade(cfg, "0004")                      # the NEW code on an OLD schema
     response = client.get("/health/ready")
     assert response.status_code == 503
     assert response.json() == {"status": "not_ready", "database": "migrations pending",
-                               "revision": "0002", "expected": "0003"}
+                               "revision": "0004", "expected": "0005"}
     command.upgrade(cfg, "head")
     assert client.get("/health/ready").status_code == 200
 

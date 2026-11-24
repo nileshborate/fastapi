@@ -1,4 +1,4 @@
-# Video 60 - the migrations are tested like code: on a real PostgreSQL, up AND down, before deploy
+# Video 60 - migrations are tested like code: a real PostgreSQL, up AND down, before deploy
 name: ci-60
 
 on:
@@ -91,3 +91,20 @@ jobs:
         with:
           name: migration-sql
           path: 60-alembic/migration.sql
+
+  compose:                                  # homework 60: the whole stack, like production
+    needs: [test, migrations]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - name: db -> migrate -> api, then wait until everything is (healthy)
+        run: docker compose up -d --build --wait
+      - name: Smoke test - the api is ready and the schema is at head
+        run: curl -fsS localhost:8000/health/ready | grep '"revision":"0005"'
+      - name: The logs, when a step failed
+        if: failure()
+        run: docker compose logs
+      - name: Clean up
+        if: always()
+        run: docker compose down -v

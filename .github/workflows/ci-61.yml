@@ -1,0 +1,94 @@
+# Video 61 - the tests, then the WHOLE stack behind Nginx: HTTPS, the redirect, the headers
+name: ci-61
+
+on:
+  push:
+    branches: [main]
+    paths: ["61-nginx/**", ".github/workflows/ci-61.yml"]
+  pull_request:
+    paths: ["61-nginx/**", ".github/workflows/ci-61.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-61-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: 61-nginx
+
+env:                                        # the tests: a throwaway CI database
+  TEST_DATABASE_URL: postgresql://coursehub:coursehub-dev@localhost:5432/coursehub_test
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff==0.17.5
+      - run: ruff check --output-format=github .
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: coursehub
+          POSTGRES_PASSWORD: coursehub-dev
+          POSTGRES_DB: coursehub_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U coursehub -d coursehub_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: 61-nginx/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: pytest --cov
+
+  nginx:                                    # the whole stack, the way users reach it
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: .env + development certificates
+        run: cp .env.example .env && ./scripts/make-certs.sh
+      - name: nginx -t - the config is valid
+        run: docker compose run --rm --no-deps nginx nginx -t
+      - name: db -> migrate -> api -> nginx, wait until (healthy)
+        run: docker compose up -d --build --wait
+      - name: HTTP sends you to HTTPS
+        run: >-
+          curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' http://localhost/health/live
+          | grep '^301 https://localhost/health/live'
+      - name: HTTPS through nginx, trusting our CA
+        run: >-
+          curl -fsS --cacert certs/ca.crt https://localhost/health/ready
+          | grep '"revision":"0005"'
+      - name: The security headers are there
+        run: >-
+          curl -fsS -D - -o /dev/null --cacert certs/ca.crt https://localhost/health/live
+          | grep -i '^strict-transport-security: max-age=31536000'
+      - name: The api's own port is NOT reachable
+        run: "! curl -s -m 2 localhost:8000/health/live"
+      - name: The logs, when a step failed
+        if: failure()
+        run: docker compose logs
+      - name: Clean up
+        if: always()
+        run: docker compose down -v
