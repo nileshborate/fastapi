@@ -75,6 +75,8 @@ Each folder contains the code, homework answer and interview questions for one v
 | 64 | Build Once: CI Builds the Image, Pushes It to GitHub Container Registry, the Server Only Pulls – One Tag per Commit, Same Digest, a Read-Only Token, Pruning Old Images | [64-ghcr](64-ghcr) |
 | 65 | Monitoring and Alerts: /metrics with prometheus-client, Prometheus Finds Every API by Docker DNS, Tested Alert Rules (ApiDown, HighErrorRate, SlowRequests), Alertmanager to Slack, Reload without Restart | [65-monitoring](65-monitoring) |
 | 66 | Performance and Load Testing: Locust from 50 to 800 Users, p50/p95/req/s, a Rate-Limit Allow-List, an Nginx Reload That Never Loaded, Pagination, 2 uvicorn Workers + Multiprocess Metrics | [66-performance](66-performance) |
+| 67 | Off-site Backups, Secrets and the Production Checklist: restic to an Append-Only rest-server, a Disaster Restore, a Weekly Restore Test, the restic Password, Secret File Permissions, gitleaks over Every Commit (last technical video) | [67-offsite-backups](67-offsite-backups) |
+| 68 | Thank You + What's Next (series finale) | – |
 
 ## Requirements
 - Python 3.10 or newer

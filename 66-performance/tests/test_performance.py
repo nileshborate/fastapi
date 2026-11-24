@@ -36,3 +36,18 @@ def test_rollout_reads_nginx_s_log_after_a_reload() -> None:     # finding 2
     roll = (ROOT / "deploy" / "rollout.sh").read_text()
     i = roll.index("nginx -s reload")
     assert 'logs --since "$since" nginx' in roll[i:] and '"[emerg]"' in roll[i:]
+
+
+def test_homework_66_only_the_course_list_is_cached_for_5_s() -> None:
+    conf = (ROOT / "nginx" / "default.conf").read_text()
+    courses = conf.split("location = /courses {")[1].split("}")[0]
+    assert "proxy_cache courses;" in courses and "proxy_cache_valid 200 5s;" in courses
+    assert "proxy_cache_lock on;" in courses
+    assert conf.count("proxy_cache courses;") == 1            # /courses/{id}: never cached
+
+
+def test_homework_66_steps_and_a_load_test_that_can_fail() -> None:
+    steps = (ROOT / "loadtest" / "steps.py").read_text()
+    assert "users = [100, 200, 400, 800]" in steps and "seconds = 30" in steps
+    locustfile = (ROOT / "loadtest" / "locustfile.py").read_text()
+    assert "environment.process_exit_code = 1" in locustfile and "p95 > 500" in locustfile

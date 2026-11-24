@@ -128,3 +128,36 @@ Each worker counts on its own; a scrape reaches ONE of them. The `/courses` coun
    (Locust's `quitting` event: `environment.process_exit_code`).
 
 Answer at the start of Video 67.
+
+## Homework answer (shown at the start of Video 67)
+**1. A micro-cache** – `nginx/default.conf`: `proxy_cache_path … keys_zone=courses:10m inactive=1m`, and in
+`location = /courses`: `proxy_cache courses` · `proxy_cache_valid 200 5s` · `proxy_cache_lock on` (100 misses at
+once → ONE request to the api) · `proxy_cache_use_stale updating`. The cache lives on a tmpfs (`compose.yaml`).
+An `X-Cache` header says HIT / MISS / EXPIRED.
+**2. Step by step** – `loadtest/steps.py`: a `LoadTestShape`, 100 → 200 → 400 → 800 visitors, 30 s each.
+**3. A load test that can fail** – the `quitting` event in the locustfile: p95 > 500 ms or > 1 % failed →
+`environment.process_exit_code = 1` and `!!! FAILED: …`. 2 new tests: **78 passed**, coverage 98.97 %.
+
+**The first try failed – and that was good.** I put `add_header X-Cache …` INSIDE `location = /courses`. The
+Video 62 test went red: `test_security_headers_only_on_the_server`. An `add_header` in a location throws away ALL
+the server's `add_header`s – HSTS & co. would have disappeared from /courses. Now it sits at server level:
+```
+$ curl -sD - -o /dev/null https://coursehub.example.com/courses      (3 times)
+strict-transport-security: max-age=31536000  · x-cache: MISS
+strict-transport-security: max-age=31536000  · x-cache: HIT
+strict-transport-security: max-age=31536000  · x-cache: HIT
+```
+**How stale?** POST a new course → 201 → the list: still the old one (`HIT`) → 6 s later: `11 courses, the last:
+Brand-new course` (`EXPIRED`). At most 5 s old – fine for a course list, never for a bank balance.
+
+**The runs** (the same stand-in lab: 2 cores, Locust on the same machine, nginx 1.28, 2 uvicorn workers):
+
+| run | p95 | req/s | failed | exit code |
+|---|---|---|---|---|
+| 800 visitors, no cache | 580 ms | 572.5 | 0 | 0 |
+| 800 visitors, **micro-cache** | **88 ms** (/courses: 46 ms) | **720.8** | 0 | 0 – `OK: p95 88 ms` |
+| steps 100 / 200 / 400 / 800 (cache) | 48 / 50 / 52 / 74 ms | – | 0 | 0 – never crossed 500 ms |
+| 1,600 visitors (cache) | **1,500 ms** | 947.4 | **1.3 %** | **1** – `!!! FAILED: p95 1500 ms (max 500) · 1.3% failed` |
+
+In the cached minute Locust sent **23,663** `GET /courses` – the api's log shows **11**. One request every ~5 s;
+nginx answered the rest. The 1,600 run is the point of homework 3: a script or CI can now SEE "too slow".

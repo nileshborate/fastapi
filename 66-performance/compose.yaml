@@ -67,6 +67,8 @@ services:
       - ./docs-site:/srv/docs-site:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro     # certbot's certificates, on the server
       - /var/www/certbot:/var/www/certbot:ro     # the HTTP-01 challenge files
+    tmpfs:
+      - /var/cache/nginx                         # homework 66: the micro-cache - in RAM
     depends_on:
       api:
         condition: service_healthy
