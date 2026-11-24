@@ -11,7 +11,10 @@ CREATE TABLE IF NOT EXISTS courses (
     id         integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title      text NOT NULL CHECK (length(title) BETWEEN 3 AND 80),
     created_at timestamptz NOT NULL DEFAULT now()
-)"""
+);
+-- homework 59: IF NOT EXISTS above skips an EXISTING table - a new column needs its own ALTER
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS description text;
+"""
 
 
 class Database:
@@ -50,12 +53,14 @@ class Database:
             return False
         return True
 
-    def add_course(self, title: str) -> dict:
+    def add_course(self, title: str, description: str | None = None) -> dict:
         with self.connection() as conn:
             # %s = a parameter: sent apart from the SQL, never pasted into it
-            return conn.execute("INSERT INTO courses (title) VALUES (%s) RETURNING id, title",
-                                (title,)).fetchone()
+            return conn.execute(
+                "INSERT INTO courses (title, description) VALUES (%s, %s)"
+                " RETURNING id, title, description", (title, description)).fetchone()
 
     def list_courses(self) -> list[dict]:
         with self.connection() as conn:
-            return conn.execute("SELECT id, title FROM courses ORDER BY id").fetchall()
+            return conn.execute(
+                "SELECT id, title, description FROM courses ORDER BY id").fetchall()

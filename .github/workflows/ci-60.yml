@@ -1,0 +1,93 @@
+# Video 60 - the migrations are tested like code: on a real PostgreSQL, up AND down, before deploy
+name: ci-60
+
+on:
+  push:
+    branches: [main]
+    paths: ["60-alembic/**", ".github/workflows/ci-60.yml"]
+  pull_request:
+    paths: ["60-alembic/**", ".github/workflows/ci-60.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-60-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: 60-alembic
+
+env:                                        # every job: the same throwaway CI database
+  DATABASE_URL: postgresql://coursehub:coursehub-dev@localhost:5432/coursehub_test
+  TEST_DATABASE_URL: postgresql://coursehub:coursehub-dev@localhost:5432/coursehub_test
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff==0.17.5
+      - run: ruff check --output-format=github .
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    services:
+      postgres: &postgres                   # a YAML anchor: the migrations job reuses it
+        image: postgres:16
+        env:
+          POSTGRES_USER: coursehub
+          POSTGRES_PASSWORD: coursehub-dev
+          POSTGRES_DB: coursehub_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U coursehub -d coursehub_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: 60-alembic/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: pytest --cov
+
+  migrations:
+    needs: lint
+    runs-on: ubuntu-latest
+    services:
+      postgres: *postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - name: Exactly one head
+        run: test "$(alembic heads | wc -l)" -eq 1
+      - name: Up from nothing
+        run: alembic upgrade head
+      - name: The tables match the migrations
+        run: alembic check
+      - name: All the way down and up again
+        run: alembic downgrade base && alembic upgrade head
+      - name: The SQL for a review
+        run: alembic upgrade 0001:head --sql > migration.sql
+      - uses: actions/upload-artifact@v4
+        with:
+          name: migration-sql
+          path: 60-alembic/migration.sql

@@ -1,6 +1,4 @@
 # Course Hub on PostgreSQL - every test runs against the real database
-from collections.abc import Iterator
-
 import psycopg
 import pytest
 from fastapi.testclient import TestClient
@@ -11,14 +9,6 @@ from app.db import Database
 NOBODY = "postgresql://nobody:x@127.0.0.1:1/none"     # port 1: nothing listens there
 
 
-@pytest.fixture
-def client() -> Iterator[TestClient]:
-    with TestClient(main.app) as test_client:
-        with main.db.connection() as conn:
-            conn.execute("TRUNCATE courses RESTART IDENTITY")     # a clean table, ids from 1
-        yield test_client
-
-
 def test_health(client: TestClient) -> None:
     assert client.get("/health/live").json() == {"status": "alive"}
     assert client.get("/health/ready").json() == {"status": "ready", "version": "1.7.0"}
@@ -26,7 +16,7 @@ def test_health(client: TestClient) -> None:
 
 def test_courses_are_stored(client: TestClient) -> None:
     assert client.post("/courses", json={"title": "Docker 101"}).json() == {
-        "id": 1, "title": "Docker 101"}
+        "id": 1, "title": "Docker 101", "description": None}
     client.post("/courses", json={"title": "PostgreSQL 101"})
     titles = [c["title"] for c in client.get("/courses").json()]
     assert titles == ["Docker 101", "PostgreSQL 101"]
@@ -45,7 +35,8 @@ def test_the_database_checks_the_title_too(client: TestClient) -> None:
 def test_a_parameter_is_never_sql(client: TestClient) -> None:
     evil = "x'); DROP TABLE courses; --"
     assert client.post("/courses", json={"title": evil}).json()["title"] == evil
-    assert client.get("/courses").json() == [{"id": 1, "title": evil}]     # table still there
+    courses = client.get("/courses").json()                      # the table is still there
+    assert courses == [{"id": 1, "title": evil, "description": None}]
 
 
 def test_not_ready_without_the_database(client: TestClient,

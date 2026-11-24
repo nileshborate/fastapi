@@ -24,6 +24,7 @@ app = FastAPI(title="Course Hub", lifespan=lifespan)
 
 class CourseIn(BaseModel):
     title: str = Field(min_length=3, max_length=80)
+    description: str | None = Field(default=None, max_length=500)   # homework 59
 
 
 @app.get("/health/live")
@@ -46,4 +47,4 @@ def courses() -> list[dict]:
 
 @app.post("/courses", status_code=201)
 def create_course(data: CourseIn) -> dict:
-    return db.add_course(data.title)
+    return db.add_course(data.title, data.description)

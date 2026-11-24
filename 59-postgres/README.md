@@ -21,7 +21,7 @@ curl localhost:8000/health/ready      # {"status":"ready","version":"1.7.0"}
 docker compose exec db psql -U coursehub -c "SELECT * FROM courses"
 
 pip install -r requirements-dev.txt   # the tests need the db service running
-pytest --cov                          # 12 passed · coverage 98.97 %
+pytest --cov                          # 15 passed (12 + 3 homework) · coverage 98.98 %
 docker compose down                   # the data stays in the volume
 ```
 
@@ -29,10 +29,12 @@ docker compose down                   # the data stays in the volume
 ```
 app/config.py     DATABASE_URL has NO default - without it the app refuses to start
 app/db.py         Database: a psycopg connection pool · CREATE TABLE IF NOT EXISTS · %s parameters
+                  + ALTER TABLE … ADD COLUMN IF NOT EXISTS description (homework 59)
 app/main.py       lifespan opens the pool (waits up to 10 s) · /health/ready asks the database
 db/init/01-test-database.sql   runs ONCE, on an empty volume: CREATE DATABASE coursehub_test
 compose.yaml      db + api · .env · named volume · pg_isready · depends_on: service_healthy
 tests/            test_app.py (9, against the real coursehub_test) · test_healthcheck.py (3)
+                  test_homework59.py (3) · conftest.py (DATABASE_URL + the client fixture)
 ```
 
 ## The pieces
@@ -89,3 +91,62 @@ listens **only on the Unix socket**. `pg_isready` (socket) said *accepting* – 
    to an existing table. Do it with `ALTER TABLE … ADD COLUMN IF NOT EXISTS` without losing the data.
 
 Answer at the start of Video 60 (Alembic migrations in production).
+
+## Homework answer (shown at the start of Video 60)
+
+### 1. CI with a real PostgreSQL – `.github/workflows/ci-59.yml`
+```yaml
+  test:
+    services:
+      postgres:                             # GitHub starts it BEFORE the first step ...
+        image: postgres:16
+        env:
+          POSTGRES_USER: coursehub
+          POSTGRES_PASSWORD: coursehub-dev  # a throwaway CI database - not a real secret
+          POSTGRES_DB: coursehub_test       # the tests' database: no init script needed
+        ports:
+          - 5432:5432                       # the job runs on the runner -> localhost:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U coursehub -d coursehub_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      ...
+      - run: pytest --cov
+        env:
+          TEST_DATABASE_URL: postgresql://coursehub:coursehub-dev@localhost:5432/coursehub_test
+```
+The job runs **on the runner**, so the service is `localhost:5432` (a job inside a `container:` would use `postgres:5432`).
+I ran the workflow the way a runner does (the service container first, then a fresh copy and a fresh virtual environment):
+the service was `(healthy)` after **2.37 s**, `pip install` 12.91 s, `pytest --cov` 4.17 s – **15 passed**, coverage 98.98 %.
+`actionlint` and the JSON schema check: no problems.
+
+### 2. Backup and restore with `pg_dump`
+```bash
+docker compose exec -T db pg_dump -U coursehub --clean --if-exists coursehub > backup.sql
+docker compose down -v && docker compose up -d                  # an empty database
+docker compose exec -T db psql -U coursehub -d coursehub -v ON_ERROR_STOP=1 -q < backup.sql
+```
+`-T` = no terminal – needed when you redirect with `>` or `<`. What my runs showed:
+| | |
+|---|---|
+| plain `pg_dump`, restore with `ON_ERROR_STOP=1` | `ERROR: relation "courses" already exists` – **our app started first and created the empty table**; nothing restored |
+| the same file without `ON_ERROR_STOP` | 3 errors (`courses`, `courses_id_seq`, `multiple primary keys`) … and `COPY 3` – the rows came back, but by luck |
+| `pg_dump --clean --if-exists` | the dump starts with `DROP TABLE IF EXISTS public.courses;` – restore: no errors, all 4 courses back, `setval … 4`, the next POST got **id 5** |
+
+### 3. A new column – `CREATE TABLE IF NOT EXISTS` does not add it
+On the Video 59 volume (2 courses) I ran `CREATE TABLE IF NOT EXISTS courses (…, description text)`:
+`NOTICE: relation "courses" already exists, skipping` – the columns stayed `id, title, created_at`.
+`IF NOT EXISTS` looks at the **table name** only. So `app/db.py` now has a second statement:
+```sql
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS description text;
+```
+New image, `docker compose up -d api` (1.73 s): `\d courses` shows `description | text`, the two old courses are there with
+`"description": null`, and `POST {"title": "Alembic", "description": "Migrations in production"}` → id 3.
+`CourseIn` got `description: str | None = Field(default=None, max_length=500)`; `tests/test_homework59.py` builds the
+**old** table, opens the app's `Database` and checks that the column is added and the row kept.
+
+This works for one column. For the tenth change – a rename, a NOT NULL, an index, a data fix – you want a history of
+changes that runs in order, once, everywhere: **Alembic** (Video 60).
+
