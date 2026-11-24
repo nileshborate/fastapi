@@ -1,6 +1,6 @@
 -r requirements.txt
-pytest==9.1.1
+pytest==9.2.0
 pytest-cov==7.1.0
-httpx2==2.16.0             # starlette 1.10: the TestClient wants httpx2
-ruff==0.17.5
+httpx2==2.16.2             # starlette 1.10: the TestClient wants httpx2
+ruff==0.17.6
 pyyaml==6.0.3              # homework 58: tests read the CI files
