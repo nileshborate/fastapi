@@ -1,4 +1,4 @@
 fastapi==0.156.0
 starlette==1.10.0          # pinned: CI found that a newer starlette changes the TestClient
 uvicorn==0.54.0
-pydantic-settings==2.16.1
+pydantic-settings==2.16.3
