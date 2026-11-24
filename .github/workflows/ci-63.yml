@@ -94,6 +94,7 @@ jobs:
       COMMIT: ${{ inputs.commit || github.sha }}
       DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
       DOMAIN: ${{ vars.DOMAIN }}
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - name: The SSH key + the server's host key - from secrets, never from the repo
         env:                                # secrets go in via env - never ${{ }} inside run
@@ -106,12 +107,49 @@ jobs:
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
 
       - name: Deploy this commit - the key can do nothing else
-        run: ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$DEPLOY_HOST" "deploy $COMMIT"
+        run: |
+          start=$(date +%s)
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$DEPLOY_HOST" "deploy $COMMIT"
+          echo "DEPLOY_SECONDS=$(( $(date +%s) - start ))" >> "$GITHUB_ENV"
 
       - name: Check it the way a user does - is OUR commit running?
+        id: check
         run: |
           curl -fsS --retry 3 --retry-all-errors "https://$DOMAIN/health/ready" | tee ready.json
           grep -q "\"commit\":\"${COMMIT:0:12}\"" ready.json
+
+      # homework 63.1: deployed, but OUR commit doesn't answer -> the one before, by itself
+      - name: Roll back by itself - the job stays red
+        id: rollback
+        if: failure() && steps.check.outcome == 'failure'
+        run: ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$DEPLOY_HOST" rollback
+
+      # homework 63.2: the run page shows it - Markdown in $GITHUB_STEP_SUMMARY
+      - name: Deploy summary
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          ROLLBACK: ${{ steps.rollback.outcome }}
+        run: |
+          version=$(grep -o '"version":"[^"]*"' ready.json 2>/dev/null | cut -d'"' -f4 || true)
+          {
+            echo "### Deploy: $JOB_STATUS"
+            echo "| commit | version | deploy time | automatic rollback |"
+            echo "|---|---|---|---|"
+            echo "| \`${COMMIT:0:12}\` | ${version:--} | ${DEPLOY_SECONDS:--} s | $ROLLBACK |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # homework 63.3: a red deploy tells somebody - the webhook URL is a secret too
+      - name: Tell somebody
+        if: failure()
+        env:
+          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+          ROLLBACK: ${{ steps.rollback.outcome }}
+        run: |
+          [ -n "$WEBHOOK_URL" ] || { echo "no DEPLOY_WEBHOOK_URL secret - skipped"; exit 0; }
+          printf '{"text":"Deploy of %s FAILED (automatic rollback: %s) - %s"}' \
+            "${COMMIT:0:12}" "$ROLLBACK" "$RUN" \
+            | curl -fsS -X POST -H 'Content-Type: application/json' --data @- "$WEBHOOK_URL"
 
       - name: Remove the key from the runner
         if: always()

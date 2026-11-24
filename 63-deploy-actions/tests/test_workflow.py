@@ -51,3 +51,25 @@ def test_the_server_side_only_knows_three_commands() -> None:
         assert f"    {case}" in script
     assert "^[0-9a-f]{40}$" in script
     assert 'GIT_SHA=$1 "$HOME/coursehub/deploy/rollout.sh"' in script
+
+
+# ---------------------------------------------------------------- homework 63
+def step(name: str) -> dict:
+    return next(s for s in jobs()["deploy"]["steps"] if s["name"].startswith(name))
+
+
+def test_homework_63_rolls_back_only_when_the_check_failed() -> None:
+    check, rollback = step("Check it the way"), step("Roll back by itself")
+    assert check["id"] == "check"
+    # a failed DEPLOY step: rollout.sh already kept the old version - nothing to roll back
+    assert rollback["if"] == "failure() && steps.check.outcome == 'failure'"
+    assert rollback["run"].endswith('"$DEPLOY_HOST" rollback')
+
+
+def test_homework_63_summary_and_webhook() -> None:
+    summary, tell = step("Deploy summary"), step("Tell somebody")
+    assert summary["if"] == "always()" and '>> "$GITHUB_STEP_SUMMARY"' in summary["run"]
+    assert 'DEPLOY_SECONDS=' in step("Deploy this commit")["run"]
+    assert tell["if"] == "failure()"
+    assert tell["env"]["WEBHOOK_URL"] == "${{ secrets.DEPLOY_WEBHOOK_URL }}"
+    assert "exit 0" in tell["run"]                 # no webhook secret: skip, don't fail

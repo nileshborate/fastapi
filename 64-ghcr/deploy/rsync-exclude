@@ -1,0 +1,12 @@
+# never copied to the server: secrets, local files, the laptop-only compose file
+.git
+.env
+certs/
+compose.override.yaml
+tests/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.coverage

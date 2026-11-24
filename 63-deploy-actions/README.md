@@ -52,7 +52,7 @@ cd 63-deploy-actions
 cp .env.example .env && ./scripts/make-certs.sh
 docker compose up -d --build --wait
 pip install -r requirements-dev.txt
-pytest --cov                           # 53 passed · coverage 98.73 %
+pytest --cov                           # 55 passed · coverage 98.73 % (53 + homework 63)
 ```
 
 ## Project – what's new
@@ -167,3 +167,40 @@ that. Now: `cancel-in-progress: ${{ github.event_name == 'pull_request' }}` – 
    URL is a secret too.
 
 Answer at the start of Video 64 (build once: the image goes to GitHub Container Registry, the server only pulls).
+
+## Homework answer (shown at the start of Video 64)
+All three are new steps at the end of the deploy job in `.github/workflows/ci-63.yml` – 2 new tests in
+`tests/test_workflow.py` (**55 passed**, 98.73 %).
+
+```yaml
+      - name: Check it the way a user does - is OUR commit running?
+        id: check                           # 1. the rollback asks for THIS step's outcome
+      - name: Roll back by itself - the job stays red
+        id: rollback
+        if: failure() && steps.check.outcome == 'failure'
+        run: ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$DEPLOY_HOST" rollback
+      - name: Deploy summary                # 2. Markdown -> $GITHUB_STEP_SUMMARY, the run page
+        if: always()
+      - name: Tell somebody                 # 3. a webhook - the URL is the secret DEPLOY_WEBHOOK_URL
+        if: failure()
+```
+Why `steps.check.outcome == 'failure'` and not just `failure()`: when the **deploy** step fails, rollout.sh
+already kept the old version – there's nothing to roll back. Only "deployed, but our commit doesn't answer" needs it.
+The deploy step writes `DEPLOY_SECONDS` into `$GITHUB_ENV`, so later steps can read it.
+
+**The runs** (the same stand-in lab; a webhook receiver plays Slack; a GET every 0.1 s):
+
+| push | what happened | GETs | the run page's summary |
+|---|---|---|---|
+| 1.12.4 | all green · deploy 27 s | 318 × 200 | `success · 1.12.4 · 27 s · rollback skipped` |
+| 1.12.5: nginx `server api:8080` (a typo) | the api is healthy, `nginx -t` passes, rollout.sh finishes ✓ – then the check: `502` four times → **rollback by itself** (26.8 s) → the job is red | 336 × 200 · **223 × 502** – for 34.1 s | `failure · 27 s · rollback success` |
+| 1.12.6: `app.mian` | the deploy step fails (unhealthy, removed) – no rollback needed | **611 × 200** | `failure · rollback skipped` |
+
+What the webhook got:
+```
+POST /services/T000/B000/coursehub  {"text":"Deploy of 3b599ed91a53 FAILED (automatic rollback: success) - https://github.com/nileshborate/fastapi/actions/runs/11873400003"}
+POST /services/T000/B000/coursehub  {"text":"Deploy of 19142ab0deb3 FAILED (automatic rollback: skipped) - https://github.com/nileshborate/fastapi/actions/runs/11873400004"}
+```
+**Finding:** the nginx typo got through everything on the server – rollout.sh checks the api's own health, not
+the path through nginx. Without the automatic rollback that's an outage until somebody notices; with it, 34 s.
+(The run links point at run ids of my stand-in runner.)
