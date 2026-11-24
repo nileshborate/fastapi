@@ -1,0 +1,13 @@
+# YOUR LAPTOP ONLY - "docker compose up" reads this file automatically, the server never does
+# (deploy.sh: docker compose -f compose.yaml ... and rsync leaves this file out)
+services:
+  db:
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d:ro  # the test database (EMPTY volume only)
+    ports:
+      - "127.0.0.1:5432:5432"                    # psql + pytest on your laptop - nobody else
+
+  nginx:
+    volumes:                                 # same target path: REPLACES the production one
+      - ./certs:/etc/letsencrypt:ro              # ./scripts/make-certs.sh
+      - ./certs/acme:/var/www/certbot:ro

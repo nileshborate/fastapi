@@ -33,7 +33,7 @@ cp .env.example .env
 ./scripts/make-certs.sh                # dev certificates in certbot's layout: certs/live/coursehub/
 docker compose up -d --build --wait    # + compose.override.yaml, automatically: dev certs, psql on 5432
 pip install -r requirements-dev.txt
-pytest --cov                           # 43 passed · coverage 98.73 %
+pytest --cov                           # 47 passed · coverage 98.73 % (with the homework)
 ```
 
 ## Project – what's new
@@ -168,3 +168,73 @@ port 80 serves `/.well-known/acme-challenge/ci` ✓ · everything else `301` ✓
    `authorized_keys` – it can run the deploy and nothing else. You'll need it in the next video.
 
 Answer at the start of Video 63 (deploy from GitHub Actions).
+
+## Homework answer (shown at the start of Video 63)
+
+New in `deploy/`: `backup.sh`, `restore-test.sh`, `rollout.sh`, `ci-command.sh`. `deploy.sh` now copies the
+code and runs `rollout.sh` on the server. `server-setup.sh` also installs `git` + `cron` and writes
+`/etc/cron.d/coursehub-backup`. nginx: `proxy_next_upstream error timeout http_502 http_503;` and
+`proxy_connect_timeout 1s`. Tests: **47 passed** (4 new in `tests/test_deploy.py`). All runs on the same stand-in
+lab as above.
+
+### 1. Nightly backups – and a restore test
+`17 3 * * * deploy /home/deploy/coursehub/deploy/backup.sh >> /home/deploy/backups/backup.log 2>&1` in
+`/etc/cron.d/coursehub-backup`: `pg_dump -Fc` (compressed, `pg_restore` can pick single tables) into
+`~/backups/coursehub-YYYY-MM-DD.dump`, `umask 077`, written to `.tmp` first and then renamed – a half-written
+dump never looks like a backup. The newest 7 are kept.
+
+| | |
+|---|---|
+| `backup.sh` | `coursehub-2026-11-17.dump 3819 bytes - 1 kept` (0.53 s) |
+| 9 older dumps (copies with earlier dates), `backup.sh` again | `7 kept`: 2026-11-11 … 2026-11-17 |
+| `restore-test.sh` | newest dump → a NEW database → `courses: live 3, restored 3 · alembic revision 0005` → dropped · 1.17 s |
+| does cron really run it? (a test entry every minute) | `2026-11-17T13:03:01+00:00 …/crontest/coursehub-2026-11-17.dump 3819 bytes` |
+
+My first cron test did nothing: the test file was group/other-writable (`INSECURE MODE (group/other writable)`
+in cron's debug output) – cron ignores such files. `server-setup.sh` writes it as root with `umask 077`.
+A backup on the same server dies with the server: copy it off the machine too (the next homework).
+
+### 2. Zero failed requests during a redeploy – `deploy/rollout.sh`
+build → migrate (expand/contract, Video 60) → `up -d --no-deps --no-recreate --scale api=2 api` (the NEW api next
+to the old one) → wait until it's **healthy** → reload nginx only if `nginx/*.conf` changed → wait 11 s (nginx
+re-resolves `api` every 10 s) → `docker stop` + `docker rm` the old one. nginx is never recreated.
+A new api that never gets healthy is removed after 60 s – the old one keeps serving.
+
+A GET every 0.1 s and a POST every 0.5 s during `deploy.sh`:
+
+| release | result | failed |
+|---|---|---|
+| 1.11.1 | ready at 1.11.1 · deploy 26.5 s | **0** of 246 GET · **0** of 57 POST |
+| 1.11.2 – `raise RuntimeError` at startup | the new api never healthy → removed · `deploy.sh` stops · still **1.11.1** answering | **0** of 567 GET · **0** of 130 POST |
+| 1.11.3 (the fix) | ready at 1.11.3 · deploy 26.4 s | **0** of 244 GET · **0** of 57 POST |
+
+**Finding – two things still failed requests.** My first `rollout.sh` ran `docker compose up -d nginx` at the
+end; with Compose 2.24.6 that recreated nginx again. Without it, my second version reloaded nginx right AFTER
+stopping the old api: 2 GET + 1 POST failed per release (`curl: (55)`, a `504`) – the stopped container's
+address was gone, connecting to it hung until `proxy_connect_timeout` (5 s). Now: reload only when the config
+changed, **before** the old api stops, and `proxy_connect_timeout 1s` – a vanished address fails fast and
+`proxy_next_upstream` sends the request to the other api. (`POST` is only retried when it never reached an api.)
+
+### 3. A key that can only deploy – `deploy/ci-command.sh`
+```
+restrict,command="/home/deploy/coursehub/deploy/ci-command.sh" ssh-ed25519 AAAA… ci-deploy
+```
+`restrict` = no shell, no port forwarding, no agent. The client's command arrives in `$SSH_ORIGINAL_COMMAND`;
+only `deploy <40-character commit>` passes. Then: `git fetch` (the server clones the repo once), `git checkout`
+that commit, `rsync` the folder into `~/coursehub` (same `rsync-exclude`: `.env` stays), `rollout.sh`, and a
+line in `~/deployed.log`.
+
+| `ssh -i ci_deploy deploy@…` | |
+|---|---|
+| no command (a shell?) | `not allowed: '' - only: deploy <40-character commit>` |
+| `cat coursehub/.env` | `not allowed: 'cat coursehub/.env' …` |
+| `deploy <sha>; rm -rf ~` | `not allowed: 'deploy 0123…4567; rm -rf ~' …` |
+| `-W db:5432` (a tunnel to the database) | `channel 0: open failed: administratively prohibited` |
+| `deploy` + a commit that doesn't exist | `fatal: Not a valid object name 0123…4567^{commit}` |
+| `deploy d058cff8760a…` (1.11.4) | rollout · **0** of 313 GET failed · `"version":"1.11.4"` · `deployed.log` has the commit |
+
+(Stand-in: the repo came from my local git server – `~/ci-command.env` sets `REPO_URL`; on your server the
+script clones `https://github.com/nileshborate/fastapi.git`.)
+
+**CI with the homework** (`ci-62.yml`, run the way a runner does): lint ✓ + shellcheck ✓ (all 8 scripts) · test:
+**47 passed** (98.73 %) · stack: `up -d --build --wait` 14.86 s · port 80 + HTTPS checks ✓.

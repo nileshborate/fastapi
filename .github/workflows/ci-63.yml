@@ -1,0 +1,118 @@
+# Video 63 - push to main -> lint -> tests -> deploy THIS commit to the server -> check it
+name: ci-63
+
+on:
+  push:
+    branches: [main]
+    paths: ["63-deploy-actions/**", ".github/workflows/ci-63.yml"]
+  pull_request:                             # a PR: lint + tests, never a deploy
+    paths: ["63-deploy-actions/**", ".github/workflows/ci-63.yml"]
+  workflow_dispatch:                        # Actions -> ci-63 -> Run workflow (by hand)
+    inputs:
+      commit:
+        description: "A full commit id to deploy - empty: the newest. An older one = a rollback"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:                                # a PR: a newer push cancels the older run
+  group: ci-63-${{ github.ref }}            # main: NEVER - that would kill a running deploy
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  TEST_DATABASE_URL: postgresql://coursehub:coursehub-dev@localhost:5432/coursehub_test
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 63-deploy-actions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff==0.17.5
+      - run: ruff check --output-format=github .
+      - run: shellcheck deploy/*.sh scripts/*.sh
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 63-deploy-actions
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: coursehub
+          POSTGRES_PASSWORD: coursehub-dev
+          POSTGRES_DB: coursehub_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U coursehub -d coursehub_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: 63-deploy-actions/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: pytest --cov
+
+  image:                                    # the tests never build the Dockerfile - this does
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 63-deploy-actions
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --build-arg GIT_SHA=${{ github.sha }} -t coursehub:ci .
+
+  deploy:                                   # NO checkout: the server fetches the commit itself
+    needs: [test, image]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:                            # Settings -> Environments: secrets, reviewers
+      name: production
+      url: https://${{ vars.DOMAIN }}
+    concurrency:                            # one deploy at a time - NEVER cancelled half-way
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      COMMIT: ${{ inputs.commit || github.sha }}
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DOMAIN: ${{ vars.DOMAIN }}
+    steps:
+      - name: The SSH key + the server's host key - from secrets, never from the repo
+        env:                                # secrets go in via env - never ${{ }} inside run
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key     # the LAST newline matters
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Deploy this commit - the key can do nothing else
+        run: ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$DEPLOY_HOST" "deploy $COMMIT"
+
+      - name: Check it the way a user does - is OUR commit running?
+        run: |
+          curl -fsS --retry 3 --retry-all-errors "https://$DOMAIN/health/ready" | tee ready.json
+          grep -q "\"commit\":\"${COMMIT:0:12}\"" ready.json
+
+      - name: Remove the key from the runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

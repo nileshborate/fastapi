@@ -38,8 +38,8 @@ def test_the_laptop_override_replaces_the_certificates() -> None:
 
 def test_deploy_uses_only_the_production_file() -> None:
     script = (DEPLOY / "deploy.sh").read_text()
-    assert "set -euo pipefail" in script
-    assert "docker compose -f compose.yaml up -d --build --wait" in script
+    assert "set -euo pipefail" in script and "coursehub/deploy/rollout.sh" in script
+    assert 'DC="docker compose -f compose.yaml"' in (DEPLOY / "rollout.sh").read_text()
     excluded = (DEPLOY / "rsync-exclude").read_text().split()
     assert {".env", "compose.override.yaml", "certs/", ".git"} <= set(excluded)
 
@@ -59,3 +59,35 @@ def test_the_certificate_name_matches_nginx() -> None:
     assert script.count("--cert-name coursehub") == 3    # first, reconfigure, certificates
     assert "--webroot-path /var/www/certbot" in script
     assert "nginx -s reload" in script                      # a renewed cert needs a reload
+
+
+def test_rollout_starts_the_new_api_before_it_stops_the_old_one() -> None:   # homework 62.2
+    lines = (DEPLOY / "rollout.sh").read_text().splitlines()
+
+    def first(text: str) -> int:
+        return next(i for i, line in enumerate(lines) if text in line)
+
+    assert first("run --rm migrate") < first("--scale api=2") < first("State.Health.Status")
+    assert first("State.Health.Status") < first('docker stop "$old"')
+    assert first('docker rm -f "$new"') < first('docker stop "$old"')   # unhealthy: old stays
+
+
+def test_nginx_tries_the_other_api() -> None:
+    conf = (ROOT / "nginx" / "default.conf").read_text()
+    assert "proxy_next_upstream error timeout http_502 http_503;" in conf
+
+
+def test_backups_every_night_and_only_seven() -> None:   # homework 62.1
+    backup = (DEPLOY / "backup.sh").read_text()
+    assert "pg_dump" in backup and "-Fc" in backup and "umask 077" in backup
+    assert "KEEP=${BACKUP_KEEP:-7}" in backup
+    assert "17 3 * * * deploy $JOB" in (DEPLOY / "server-setup.sh").read_text()
+    restore = (DEPLOY / "restore-test.sh").read_text()
+    assert "pg_restore" in restore and "dropdb" in restore
+
+
+def test_the_ci_key_can_only_deploy_a_commit() -> None:   # homework 62.3
+    script = (DEPLOY / "ci-command.sh").read_text()
+    assert "SSH_ORIGINAL_COMMAND" in script
+    assert "^[0-9a-f]{40}$" in script                     # a full commit id - nothing else
+    assert '"$HOME/coursehub/deploy/rollout.sh"' in script

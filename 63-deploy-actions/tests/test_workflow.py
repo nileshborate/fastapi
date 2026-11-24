@@ -1,0 +1,53 @@
+# Video 63: the deploy workflow is code too - a wrong "if" deploys every pull request
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW = ROOT.parent / ".github" / "workflows" / "ci-63.yml"
+
+
+def jobs() -> dict:
+    return yaml.safe_load(WORKFLOW.read_text())["jobs"]
+
+
+def test_deploy_only_after_the_tests_and_only_from_main() -> None:
+    deploy = jobs()["deploy"]
+    assert deploy["needs"] == ["test", "image"] and jobs()["test"]["needs"] == "lint"
+    assert "docker build" in jobs()["image"]["steps"][-1]["run"]   # tests don't build the image
+    only_main = "github.ref == 'refs/heads/main' && github.event_name != 'pull_request'"
+    assert deploy["if"] == only_main
+
+
+def test_one_deploy_at_a_time_never_cancelled() -> None:
+    deploy = jobs()["deploy"]
+    assert deploy["concurrency"] == {"group": "deploy-production", "cancel-in-progress": False}
+    assert deploy["environment"]["name"] == "production"
+    # the WORKFLOW may cancel only pull requests - on main it would kill a running deploy
+    on_main = yaml.safe_load(WORKFLOW.read_text())["concurrency"]["cancel-in-progress"]
+    assert on_main == "${{ github.event_name == 'pull_request' }}"
+
+
+def test_secrets_only_through_env() -> None:
+    for step in jobs()["deploy"]["steps"]:
+        assert "secrets." not in step["run"]        # ${{ }} inside run: script injection
+    key_step = jobs()["deploy"]["steps"][0]
+    assert set(key_step["env"]) == {"DEPLOY_SSH_KEY", "DEPLOY_KNOWN_HOSTS"}
+    assert "printf '%s\\n' \"$DEPLOY_SSH_KEY\"" in key_step["run"]   # + the last newline
+
+
+def test_the_deploy_job_checks_its_own_commit() -> None:
+    steps = jobs()["deploy"]["steps"]
+    assert not any("uses" in step for step in steps)          # no checkout: the server fetches
+    assert jobs()["deploy"]["env"]["COMMIT"] == "${{ inputs.commit || github.sha }}"
+    run = "\n".join(step["run"] for step in steps)
+    assert '"deploy $COMMIT"' in run and "${COMMIT:0:12}" in run
+    assert steps[-1]["if"] == "always()" and "rm -f ~/.ssh/deploy_key" in steps[-1]["run"]
+
+
+def test_the_server_side_only_knows_three_commands() -> None:
+    script = (ROOT / "deploy" / "ci-command.sh").read_text()
+    for case in ("deploy:)", "rollback:)", "status:)", "*)"):
+        assert f"    {case}" in script
+    assert "^[0-9a-f]{40}$" in script
+    assert 'GIT_SHA=$1 "$HOME/coursehub/deploy/rollout.sh"' in script

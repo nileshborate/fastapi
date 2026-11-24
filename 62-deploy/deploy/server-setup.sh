@@ -6,7 +6,7 @@ set -euo pipefail
 echo "==> 1. packages: Docker + Compose, certbot, the firewall, automatic security updates"
 apt-get update -q
 DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
-    docker.io docker-compose-v2 certbot ufw unattended-upgrades >/dev/null
+    docker.io docker-compose-v2 certbot ufw unattended-upgrades git cron >/dev/null
 
 echo "==> 2. a deploy user: logs in with YOUR key, runs docker - no password, no sudo"
 id deploy >/dev/null 2>&1 || adduser --disabled-password --gecos "" deploy >/dev/null
@@ -40,5 +40,9 @@ if [ ! -f /home/deploy/coursehub/.env ]; then
         "$(openssl rand -hex 24)" > /home/deploy/coursehub/.env
     chown deploy:deploy /home/deploy/coursehub/.env
 fi
+echo "==> 6. a backup every night at 03:17 - deploy/restore-test.sh proves it can be restored"
+install -d -m 700 -o deploy -g deploy /home/deploy/backups
+JOB="/home/deploy/coursehub/deploy/backup.sh >> /home/deploy/backups/backup.log 2>&1"
+echo "17 3 * * * deploy $JOB" > /etc/cron.d/coursehub-backup   # min hour day month weekday
 ufw status verbose | head -4
 echo "done: ssh deploy@$(hostname -I | cut -d' ' -f1)"
